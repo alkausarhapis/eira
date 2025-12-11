@@ -1,19 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'services/app_blocking_service.dart';
+import 'services/blocked_apps_database.dart';
 import 'theme/app_theme.dart';
+import 'viewmodels/blocked_apps_viewmodel.dart';
 import 'viewmodels/microtask_viewmodel.dart';
 import 'viewmodels/theme_viewmodel.dart';
 import 'views/blocked_apps_page.dart';
 import 'views/home_page.dart';
 import 'views/settings_page.dart';
 
-void main() {
+// TODO: Remove logging
+// TODO: Remove smell codes
+// TODO: Remove unnecessary comments & codes
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize blocked apps in Accessibility Service on startup
+  try {
+    final database = BlockedAppsDatabase.instance;
+    final blockingService = AppBlockingService();
+
+    // Load blocked apps from database
+    final blockedApps = await database.getBlockedApps();
+    final packageNames = blockedApps.map((app) => app.packageName).toList();
+
+    // Update Accessibility Service with blocked apps list
+    await blockingService.setBlockedApps(packageNames);
+    debugPrint('✅ Initialized ${packageNames.length} blocked apps on startup');
+  } catch (e) {
+    debugPrint('❌ Error initializing blocked apps: $e');
+  }
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeViewModel()),
         ChangeNotifierProvider(create: (_) => MicrotaskViewModel()),
+        ChangeNotifierProvider(create: (_) => BlockedAppsViewModel()),
       ],
       child: const MainApp(),
     ),

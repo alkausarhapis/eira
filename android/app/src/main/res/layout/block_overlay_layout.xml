@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+    
+    <!-- Logo -->
+    <TextView
+        android:id="@+id/logo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Eira"
+        android:textSize="32sp"
+        android:textColor="#FFFFFF"
+        android:fontFamily="sans-serif-medium"
+        android:letterSpacing="0.1"
+        android:background="@drawable/logo_gradient_bg"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="80dp"/>
+    
+    <!-- Main Content -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="32dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+        
+        <!-- App Name -->
+        <TextView
+            android:id="@+id/blocked_app_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Aplikasi"
+            android:textSize="20sp"
+            android:textColor="#9747FF"
+            android:fontFamily="sans-serif-medium"
+            android:layout_marginBottom="16dp"/>
+        
+        <!-- Block Message -->
+        <TextView
+            android:id="@+id/block_message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Aplikasi ini diblokir untuk membantu fokus"
+            android:textSize="24sp"
+            android:textColor="#FFFFFF"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:layout_marginBottom="32dp"/>
+        
+        <!-- Countdown -->
+        <TextView
+            android:id="@+id/countdown_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="23:59:59"
+            android:textSize="48sp"
+            android:textColor="#9747FF"
+            android:fontFamily="monospace"
+            android:letterSpacing="0.1"
+            android:layout_marginBottom="16dp"/>
+        
+        <!-- Unblock Time -->
+        <TextView
+            android:id="@+id/unblock_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Diblokir sampai: --"
+            android:textSize="14sp"
+            android:textColor="#999999"
+            android:gravity="center"
+            android:layout_marginBottom="32dp"/>
+        
+        <!-- Info Message -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tetap fokus pada tugas yang penting.\nKamu bisa melakukannya! 💪"
+            android:textSize="16sp"
+            android:textColor="#CCCCCC"
+            android:gravity="center"
+            android:lineSpacingExtra="4dp"/>
+        
+    </LinearLayout>
+    
+    <!-- Close Button -->
+    <TextView
+        android:id="@+id/close_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Kembali ke Home"
+        android:textSize="16sp"
+        android:textColor="#9747FF"
+        android:fontFamily="sans-serif-medium"
+        android:padding="16dp"
+        android:clickable="true"
+        android:focusable="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="48dp"/>
+    
+</androidx.constraintlayout.widget.ConstraintLayout>

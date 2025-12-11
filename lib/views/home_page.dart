@@ -132,7 +132,7 @@ class _HomePageState extends State<HomePage> {
                           onStart: () =>
                               microtaskViewModel.startSession(microtask),
                         );
-                      }).toList(),
+                      }),
                     ] else ...[
                       Center(
                         child: Padding(
