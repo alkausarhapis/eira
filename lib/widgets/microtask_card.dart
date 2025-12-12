@@ -112,7 +112,7 @@ class _MicrotaskCardState extends State<MicrotaskCard> {
                         ],
                       ),
                     );
-                  }).toList(),
+                  }),
                   if (widget.microtask.status != 'done') ...[
                     const SizedBox(height: 16),
                     SizedBox(

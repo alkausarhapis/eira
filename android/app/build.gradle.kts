@@ -39,6 +39,18 @@ android {
     }
 }
 
+
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Coroutines (used by BlockOverlayService)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    
+    // ConstraintLayout (used by block_overlay_layout.xml)
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    
+    // Lifecycle (useful for app lifecycle management)
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
 }
