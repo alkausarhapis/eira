@@ -133,4 +133,24 @@ class NativeBlockService {
       return 0;
     }
   }
+
+  Future<bool> startFocusMode() async {
+    try {
+      final bool result = await _channel.invokeMethod('startFocusMode');
+      return result;
+    } catch (e) {
+      debugPrint('Error starting focus mode: $e');
+      return false;
+    }
+  }
+
+  Future<bool> stopFocusMode() async {
+    try {
+      final bool result = await _channel.invokeMethod('stopFocusMode');
+      return result;
+    } catch (e) {
+      debugPrint('Error stopping focus mode: $e');
+      return false;
+    }
+  }
 }

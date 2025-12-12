@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../services/native_block_service.dart';
 import '../viewmodels/microtask_viewmodel.dart';
 import '../viewmodels/theme_viewmodel.dart';
 import '../widgets/active_session_widget.dart';
@@ -17,6 +18,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final TextEditingController _promptController = TextEditingController();
+  final NativeBlockService _nativeService = NativeBlockService();
   bool _isGenerating = false;
 
   @override
@@ -37,6 +39,58 @@ class _HomePageState extends State<HomePage> {
       context.read<MicrotaskViewModel>().generateMicrotasks(prompt);
       _promptController.clear();
       setState(() => _isGenerating = false);
+    }
+  }
+
+  Future<void> _showFocusModeDialog() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Mode Fokus'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Dengan mengaktifkan Fokus Mode:',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            SizedBox(height: 12),
+            Text('• Layar penuh akan ditutup dengan overlay hitam'),
+            SizedBox(height: 8),
+            Text('• Semua notifikasi dan distraksi akan tersembunyi'),
+            SizedBox(height: 8),
+            Text(
+              '• Kamu hanya bisa keluar dengan menekan tombol "Hentikan Fokus"',
+            ),
+            SizedBox(height: 8),
+            Text('• Timer akan mencatat durasi fokusmu'),
+            SizedBox(height: 16),
+            Text(
+              'Apakah kamu siap untuk fokus?',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Paham, Mulai Fokus'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      // Start native focus mode overlay
+      await _nativeService.startFocusMode();
     }
   }
 
@@ -166,6 +220,12 @@ class _HomePageState extends State<HomePage> {
             ),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showFocusModeDialog,
+        backgroundColor: const Color(0xFF9747FF),
+        elevation: 4,
+        child: const Icon(Icons.do_disturb_on_outlined),
       ),
     );
   }

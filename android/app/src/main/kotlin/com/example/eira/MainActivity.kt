@@ -12,6 +12,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import com.example.eira.utils.AppManager
 import com.example.eira.utils.PreferencesManager
+import com.example.eira.utils.FocusModeOverlayManager
 import com.example.eira.service.BlockOverlayService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +23,7 @@ class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.eira/native_block"
     private lateinit var appManager: AppManager
     private lateinit var prefsManager: PreferencesManager
+    private var focusModeOverlay: FocusModeOverlayManager? = null
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
@@ -139,6 +141,21 @@ class MainActivity : FlutterActivity() {
                         "usageStatsGranted" to hasUsageStatsPermission()
                     )
                     result.success(permissions)
+                }
+                "startFocusMode" -> {
+                    if (focusModeOverlay == null) {
+                        focusModeOverlay = FocusModeOverlayManager(applicationContext)
+                    }
+                    focusModeOverlay?.show {
+                        // Callback when user stops focus mode
+                        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
+                            .invokeMethod("onFocusModeStop", null)
+                    }
+                    result.success(true)
+                }
+                "stopFocusMode" -> {
+                    focusModeOverlay?.hide()
+                    result.success(true)
                 }
                 "getUsageStats" -> {
                     val packageName = call.argument<String>("packageName")
