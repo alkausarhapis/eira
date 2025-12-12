@@ -1,10 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../services/native_block_service.dart';
 import '../viewmodels/theme_viewmodel.dart';
 
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  final NativeBlockService _nativeService = NativeBlockService();
+  Map<String, bool> _permissions = {
+    'overlayGranted': false,
+    'accessibilityGranted': false,
+    'usageStatsGranted': false,
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPermissions();
+  }
+
+  Future<void> _loadPermissions() async {
+    final permissions = await _nativeService.getPermissionsStatus();
+    if (mounted) {
+      setState(() {
+        _permissions = permissions;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +48,156 @@ class SettingsPage extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text('Pengaturan', style: theme.textTheme.displayMedium),
+              ),
+
+              // Permissions Section
+              _SettingsSection(
+                title: 'Izin Aplikasi',
+                children: [
+                  Card(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    child: ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: _permissions['overlayGranted'] == true
+                              ? Colors.green.withValues(alpha: 0.1)
+                              : Colors.orange.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          _permissions['overlayGranted'] == true
+                              ? Icons.check_circle
+                              : Icons.layers,
+                          color: _permissions['overlayGranted'] == true
+                              ? Colors.green
+                              : Colors.orange,
+                        ),
+                      ),
+                      title: Text(
+                        'Tampilkan di Atas Aplikasi Lain',
+                        style: theme.textTheme.bodyLarge,
+                      ),
+                      subtitle: Text(
+                        _permissions['overlayGranted'] == true
+                            ? 'Diizinkan'
+                            : 'Diperlukan untuk fitur blocking',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                      trailing: _permissions['overlayGranted'] != true
+                          ? TextButton(
+                              onPressed: () async {
+                                await _nativeService.requestOverlayPermission();
+                                await Future.delayed(
+                                  const Duration(seconds: 1),
+                                );
+                                await _loadPermissions();
+                              },
+                              child: const Text('Aktifkan'),
+                            )
+                          : null,
+                    ),
+                  ),
+                  Card(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    child: ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: _permissions['accessibilityGranted'] == true
+                              ? Colors.green.withValues(alpha: 0.1)
+                              : Colors.orange.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          _permissions['accessibilityGranted'] == true
+                              ? Icons.check_circle
+                              : Icons.accessibility_new,
+                          color: _permissions['accessibilityGranted'] == true
+                              ? Colors.green
+                              : Colors.orange,
+                        ),
+                      ),
+                      title: Text(
+                        'Aksesibilitas',
+                        style: theme.textTheme.bodyLarge,
+                      ),
+                      subtitle: Text(
+                        _permissions['accessibilityGranted'] == true
+                            ? 'Diizinkan'
+                            : 'Diperlukan untuk mendeteksi aplikasi',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                      trailing: _permissions['accessibilityGranted'] != true
+                          ? TextButton(
+                              onPressed: () async {
+                                await _nativeService
+                                    .requestAccessibilitySettings();
+                                await Future.delayed(
+                                  const Duration(seconds: 1),
+                                );
+                                await _loadPermissions();
+                              },
+                              child: const Text('Aktifkan'),
+                            )
+                          : null,
+                    ),
+                  ),
+                  Card(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    child: ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: _permissions['usageStatsGranted'] == true
+                              ? Colors.green.withValues(alpha: 0.1)
+                              : Colors.orange.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          _permissions['usageStatsGranted'] == true
+                              ? Icons.check_circle
+                              : Icons.bar_chart,
+                          color: _permissions['usageStatsGranted'] == true
+                              ? Colors.green
+                              : Colors.orange,
+                        ),
+                      ),
+                      title: Text(
+                        'Statistik Penggunaan',
+                        style: theme.textTheme.bodyLarge,
+                      ),
+                      subtitle: Text(
+                        _permissions['usageStatsGranted'] == true
+                            ? 'Diizinkan'
+                            : 'Diperlukan untuk melihat waktu penggunaan',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                      trailing: _permissions['usageStatsGranted'] != true
+                          ? TextButton(
+                              onPressed: () async {
+                                await _nativeService
+                                    .requestUsageStatsPermission();
+                                await Future.delayed(
+                                  const Duration(seconds: 1),
+                                );
+                                await _loadPermissions();
+                              },
+                              child: const Text('Aktifkan'),
+                            )
+                          : null,
+                    ),
+                  ),
+                ],
               ),
 
               // Theme Section

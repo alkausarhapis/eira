@@ -10,10 +10,15 @@ The Blocked Apps feature allows users to set time limits on applications and aut
 
 ### Flutter Layer
 
+- **Database**: sqflite
+  - `BlockedAppsDatabase` singleton
+  - `blocked_apps` table with CRUD operations
 - **Models**: `InstalledAppModel`, `BlockedAppModel`
-- **Service**: `NativeBlockService` - Platform channel communication
+- **Services**:
+  - `NativeBlockService` - Platform channel communication
+  - `AppBlockingService` - Accessibility service integration
 - **ViewModel**: `BlockedAppsViewModel` - State management with Provider
-- **Views**: `BlockedAppsPage` - Main UI with search and list
+- **Views**: `BlockedAppsPage` - Main UI with search, pull-to-refresh, and list
 - **Widgets**:
   - `AppListItem` - Individual app row with icon and hourglass
   - `BlockDurationModal` - Time limit selection modal
@@ -21,18 +26,25 @@ The Blocked Apps feature allows users to set time limits on applications and aut
 
 ### Native Android Layer (Kotlin)
 
-- **Database**: Room (SQLite)
-  - `BlockedApp` entity
-  - `BlockedAppDao` for queries
-  - `AppDatabase` singleton
+- **MainActivity**: Platform channel handler
+  - Implements all native methods
+  - Updates AccessibilityService blocked apps list via `setBlockedApps()`
 - **Services**:
-  - `AppBlockAccessibilityService` - Monitors foreground apps
-  - `BlockOverlayService` - Full-screen blocking overlay
+  - `AppBlockAccessibilityService` - Monitors foreground apps and triggers blocking
+  - Uses `TYPE_WINDOW_STATE_CHANGED` events
+  - Reads blocked apps from SharedPreferences
+  - Launches overlay when blocked app detected
+- **Overlay**:
+  - `BlockOverlayManager` - System overlay window manager
+  - Modern Material Design 3 UI with gradient background
+  - `BlockingActivity` - Fallback full-screen activity
 - **Utilities**:
   - `AppManager` - UsageStats, app filtering, icon loading
   - `PreferencesManager` - SharedPreferences wrapper
-- **Worker**:
-  - `UnblockWorker` - WorkManager job to unblock after 24h
+- **Data Sync**:
+  - SharedPreferences stores blocked apps list in JSON format
+  - Flutter writes to SharedPreferences via `setBlockedApps()`
+  - AccessibilityService reads and monitors in real-time
 
 ---
 
@@ -72,6 +84,18 @@ Loads app icon asynchronously.
 
 **Returns**: `Uint8List?` - PNG bytes of app icon
 
+#### `setBlockedApps(List<String> packageNames)`
+
+Updates the AccessibilityService with current blocked apps list.
+
+**Parameters**:
+
+- `packageNames`: List of package names to block
+
+**Returns**: `void`
+
+**Note**: This method synchronizes Flutter's database with the native AccessibilityService. Call this after any database changes (block/unblock operations).
+
 #### `requestOverlayPermission()`
 
 Opens system overlay permission settings.
@@ -92,17 +116,16 @@ Opens usage access settings.
 
 #### `startBlock(...)`
 
-Blocks an app for 24 hours.
+Blocks an app for 24 hours (stores in SharedPreferences for native access).
 
 **Parameters**:
 
 - `packageName`: Package name
 - `appName`: Display name
-- `blockDurationMillis`: Block duration (always 24 hours = 86400000)
-- `reason`: Optional reason string
-- `timeSpent`: Time spent snapshot in milliseconds
 
 **Returns**: `bool` - Success status
+
+**Note**: The actual blocking logic is handled by the AccessibilityService reading from SharedPreferences. This method just stores the block metadata.
 
 #### `stopBlock(String packageName)`
 
@@ -113,26 +136,6 @@ Manually unblocks an app.
 - `packageName`: Package name to unblock
 
 **Returns**: `bool` - Success status
-
-#### `getBlockedApps()`
-
-Retrieves all blocked apps from database.
-
-**Returns**: `List<Map>`
-
-```dart
-[
-  {
-    "packageName": "com.example.app",
-    "appName": "Example App",
-    "blockedUntil": 1702312345678, // Unix timestamp in milliseconds
-    "blockReason": "Batas waktu: 30 menit",
-    "timeSpentSnapshot": 1800000,
-    "isBlocked": true,
-    "blockDurationMillis": 86400000
-  }
-]
-```
 
 #### `getPermissionsStatus()`
 
@@ -194,53 +197,106 @@ Add to `AndroidManifest.xml`:
 - Modal appears with preset durations (5m, 10m, 30m, 1h, 2h, 6h) or custom input
 - User confirms → app is blocked for 24 hours
 
-### 2. Database Storage
+### 2. Database Storage (Flutter - sqflite)
 
-```kotlin
-BlockedApp(
-  packageName = "com.instagram.android",
-  appName = "Instagram",
-  blockedUntil = System.currentTimeMillis() + 86400000, // +24h
-  blockReason = "Batas waktu: 30 menit",
-  timeSpentSnapshot = 1800000, // 30 minutes
-  isBlocked = true
+```dart
+BlockedAppModel(
+  packageName: "com.instagram.android",
+  appName: "Instagram",
+  blockedUntil: DateTime.now().add(Duration(hours: 24)).millisecondsSinceEpoch,
+  timeSpentSnapshot: 1800000, // 30 minutes
+  isBlocked: true,
+  blockDurationMillis: 86400000, // 24 hours
 )
 ```
 
-### 3. Background Monitoring
+### 3. Sync with AccessibilityService
+
+After database update, Flutter calls `setBlockedApps()` via platform channel:
+
+```dart
+final packageNames = blockedApps.map((app) => app.packageName).toList();
+await blockingService.setBlockedApps(packageNames);
+```
+
+This updates the static `blockedApps` variable in `AppBlockAccessibilityService` and writes to SharedPreferences.
+
+### 4. Background Monitoring
 
 `AppBlockAccessibilityService` listens for `TYPE_WINDOW_STATE_CHANGED` events:
 
-- When user opens any app, service checks if package is in blocked list
-- If blocked and `blockedUntil > now`, triggers overlay
+- When user opens any app, service receives window change event
+- Checks if package name is in `blockedApps` Set
+- If blocked, shows overlay and sends GLOBAL_ACTION_HOME after 500ms
+- Duplicate prevention: 1-second cooldown per app
 
-### 4. Overlay Display
+### 5. Overlay Display
 
-`BlockOverlayService` shows full-screen overlay:
+`BlockOverlayManager` shows system overlay window with Material Design 3:
 
-- Eira logo
-- App name
-- Message: "Aplikasi ini diblokir untuk membantu fokus"
-- Live countdown timer
-- "Kembali ke Home" button (returns to launcher)
+**Visual Design:**
 
-### 5. Auto-Unblock
+- Gradient background (light purple to white)
+- Elevated white card with rounded corners (24dp radius)
+- Circular app icon container with light purple background
+- App name in medium-weight font
+- "Aplikasi Diblokir" badge with 🚫 emoji
+- Motivational message: "Tetap fokus pada tugas yang penting. Kamu bisa melakukannya! 💪"
+- Purple "Kembali ke Home" button with ripple effect
 
-`WorkManager` schedules `UnblockWorker`:
+**Behavior:**
 
-- Runs after 24 hours
-- Updates database: `isBlocked = false`
-- No more overlay shown
+- Full-screen system overlay (`TYPE_APPLICATION_OVERLAY`)
+- Appears on top of blocked app
+- After 500ms, performs `GLOBAL_ACTION_HOME` to close blocked app
+- User can manually tap button to return home
+
+### 6. App Initialization
+
+When Eira starts, `main.dart` loads blocked apps and syncs:
+
+```dart
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Load blocked apps from database
+  final blockedApps = await database.getBlockedApps();
+  final packageNames = blockedApps.map((app) => app.packageName).toList();
+
+  // Sync with AccessibilityService
+  await blockingService.setBlockedApps(packageNames);
+
+  runApp(MyApp());
+}
+```
+
+This ensures blocking works immediately after app restart.
+
+### 7. Auto-Unblock
+
+Currently manual only. Future enhancement:
+
+- Background worker to check `blockedUntil` timestamps
+- Automatically remove expired blocks from database
+- Call `setBlockedApps()` to sync with AccessibilityService
 
 ---
 
 ## UI Features
+
+### Pull-to-Refresh
+
+- Swipe down on app list to refresh
+- Reloads permissions status and installed apps
+- Works even when list is empty
+- Material Design circular progress indicator
 
 ### Search
 
 - Real-time filtering by app name
 - Case-insensitive
 - Updates list instantly
+- Clear button appears when text entered
 
 ### App List Item
 
@@ -272,31 +328,35 @@ BlockedApp(
 
 ## Database Schema
 
-### Room Entity: `BlockedApp`
+### sqflite Table: `blocked_apps`
 
-| Column              | Type        | Description                   |
-| ------------------- | ----------- | ----------------------------- |
-| packageName         | String (PK) | Unique package identifier     |
-| appName             | String      | Display name                  |
-| iconUri             | String?     | Optional icon cache path      |
-| blockedUntil        | Long        | Unix timestamp (milliseconds) |
-| blockReason         | String?     | User-set reason               |
-| timeSpentSnapshot   | Long        | Usage time when blocked       |
-| isBlocked           | Boolean     | Current block status          |
-| blockDurationMillis | Long        | Original block duration       |
+| Column       | Type             | Description                  |
+| ------------ | ---------------- | ---------------------------- |
+| package_name | TEXT PRIMARY KEY | Unique package identifier    |
+| app_name     | TEXT NOT NULL    | Display name                 |
+| limit_millis | INTEGER NOT NULL | Time limit that was exceeded |
+| start_time   | INTEGER NOT NULL | When block started           |
+| unblock_time | INTEGER NOT NULL | When block expires (24h)     |
+| is_active    | INTEGER NOT NULL | Current block status (0/1)   |
+
+**CRUD Operations:**
+
+- `insertBlockedApp()` - Add new blocked app
+- `getBlockedApps()` - Query all active blocks
+- `deleteBlockedApp()` - Remove block by package name
+- `cleanupExpiredBlocks()` - Delete blocks where `unblock_time < now`
 
 ---
 
 ## SharedPreferences Keys
 
-Stored in `eira_prefs`:
+Stored in `FlutterSharedPreferences`:
 
-- `pref_overlay_granted` (Boolean)
-- `pref_accessibility_granted` (Boolean)
-- `pref_usage_stats_granted` (Boolean)
-- `pref_theme` (String: "light"|"dark"|"system")
-- `pref_last_sort` (String: "time_spent"|"name")
-- `pref_block_default_duration` (Long, default: 86400000)
+- `flutter.blockedApps` (String) - JSON array of blocked package names, e.g., `["com.instagram.android","com.twitter.android"]`
+
+Stored in app preferences:
+
+- Block metadata stored per app (written by `startBlock()`, read by `AppManager`)
 
 ---
 
@@ -331,16 +391,25 @@ if (!isSystem || isUpdatedSystem) {
 
 - Uses `TYPE_WINDOW_STATE_CHANGED` for app switches
 - Checks package name on every window change
-- Avoids repeated checks for same package
-- Coroutine scope for async database access
+- Duplicate prevention: 1-second cooldown per package
+- Reads blocked apps from SharedPreferences
+- Static `blockedApps` Set for instant lookup
+- Listens for SharedPreferences changes via `OnSharedPreferenceChangeListener`
 
 ### Overlay Behavior
 
-- `TYPE_APPLICATION_OVERLAY` (API 26+)
-- `FLAG_NOT_FOCUSABLE` - doesn't capture input
-- `FLAG_LAYOUT_IN_SCREEN` - full-screen
-- Live countdown updates every second
-- Auto-removes when time expires
+- `TYPE_APPLICATION_OVERLAY` (API 26+) or `TYPE_PHONE` (API 23-25)
+- Full-screen overlay with `MATCH_PARENT` dimensions
+- Material Design 3 styling:
+  - Gradient background
+  - Elevated card with shadow
+  - Rounded corners (24dp)
+  - Circular icon container
+  - Ripple effect on button
+- `dpToPx()` helper for density-independent pixels
+- Proper color system (primary purple: #9747FF)
+- Removes previous overlay before showing new one
+- Main thread execution guaranteed
 
 ---
 
@@ -368,14 +437,20 @@ if (!isSystem || isUpdatedSystem) {
    - Solution: Guide users to disable battery optimization
 2. **Accessibility Permission**: Users must manually enable in settings
    - Cannot be granted programmatically (Android security)
+   - Must restart service if app is force-stopped
 3. **Overlay Permission**: Required for API 23+
-   - Must be granted before first block attempt
+   - Must be granted before blocking works
+   - Permission check performed before showing overlay
 4. **Usage Stats**: Requires special permission
-
    - User must navigate to settings and enable manually
-
 5. **System Apps**: Cannot block critical system apps
    - Filtered out for safety
+6. **Auto-Unblock**: Not yet implemented
+   - Expired blocks cleaned up on app launch
+   - Background worker needed for real-time auto-unblock
+7. **Database Migration**: Using sqflite (Flutter) instead of Room (Native)
+   - All database operations are async
+   - Requires platform channel sync via `setBlockedApps()`
 
 ---
 
@@ -405,20 +480,35 @@ if (!isSystem || isUpdatedSystem) {
 ### "Blocking not working"
 
 - Check all three permissions granted (Overlay, Accessibility, Usage Stats)
-- Verify Accessibility Service is enabled and running
+- Verify Accessibility Service is enabled in Android Settings → Accessibility
 - Check battery optimization disabled for Eira
+- Pull down to refresh app list
+- Try blocking a different app to isolate the issue
+- Check logs for "BLOCKED APP DETECTED" message
 
 ### "Overlay not appearing"
 
-- Check SYSTEM_ALERT_WINDOW permission
-- Verify overlay permission in app settings
+- Check SYSTEM_ALERT_WINDOW permission granted
+- Verify overlay permission in Android Settings → Apps → Eira → Display over other apps
 - Check Android version compatibility (API 23+)
+- Look for "No overlay permission" in logs
+- Try revoking and re-granting overlay permission
 
 ### "App still accessible after block"
 
-- Verify Accessibility Service is running
-- Check blockedUntil timestamp is future
-- Restart Accessibility Service
+- Verify Accessibility Service is running (`isServiceRunning` should be true)
+- Check `blockedApps` list in AccessibilityService logs
+- Pull down to refresh on Blocked Apps page
+- Force stop and restart Eira app
+- Check SharedPreferences contains correct package names
+- Verify `setBlockedApps()` was called after database update
+
+### "Overlay shows but app doesn't close"
+
+- GLOBAL_ACTION_HOME should be called after 500ms
+- Check logs for "Sent to home screen" message
+- Some launchers may not respond to HOME action
+- User can manually tap "Kembali ke Home" button
 
 ---
 
@@ -433,6 +523,33 @@ For issues or questions:
 
 ---
 
-**Last Updated**: December 2025  
+---
+
+## Current Implementation Status
+
+✅ **Completed:**
+
+- sqflite database integration
+- AccessibilityService monitoring
+- System overlay blocking UI (Material Design 3)
+- Platform channel API with `setBlockedApps()`
+- SharedPreferences sync between Flutter and native
+- Permission management system
+- Pull-to-refresh functionality
+- Search and filtering
+- Block/unblock operations
+- App startup initialization
+
+⏳ **Pending:**
+
+- Auto-unblock after 24 hours (WorkManager)
+- Usage time tracking and analytics
+- Notification when approaching time limit
+- Battery optimization guidance
+
+---
+
+**Last Updated**: December 12, 2025  
 **Android API Support**: 23 (Android 6.0) to 34 (Android 14)  
-**Flutter Version**: 3.9.2+
+**Flutter Version**: 3.9.2+  
+**Architecture**: Flutter UI + sqflite + Native AccessibilityService + System Overlay
