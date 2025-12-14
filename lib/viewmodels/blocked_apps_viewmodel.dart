@@ -13,7 +13,7 @@ class BlockedAppsViewModel extends ChangeNotifier {
 
   List<InstalledAppModel> _installedApps = [];
   List<BlockedAppModel> _blockedApps = [];
-  Map<String, Uint8List> _iconCache = {};
+  final Map<String, Uint8List> _iconCache = {};
   String _searchQuery = '';
   bool _isLoading = false;
   Map<String, bool> _permissions = {

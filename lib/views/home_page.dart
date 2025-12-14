@@ -22,6 +22,52 @@ class _HomePageState extends State<HomePage> {
   bool _isGenerating = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Set completion callback after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final viewModel = context.read<MicrotaskViewModel>();
+      viewModel.setOnMicrotaskCompleted((title) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.celebration, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text('Micro-task "$title" diselesaikan!')),
+                ],
+              ),
+              backgroundColor: const Color(0xFF9747FF),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      });
+
+      viewModel.setOnMicrotaskDeleted((title) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.delete_outline, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text('Micro-task "$title" telah dihapus')),
+                ],
+              ),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      });
+    });
+  }
+
+  @override
   void dispose() {
     _promptController.dispose();
     super.dispose();
@@ -33,10 +79,8 @@ class _HomePageState extends State<HomePage> {
 
     setState(() => _isGenerating = true);
 
-    await Future.delayed(const Duration(seconds: 1));
-
     if (mounted) {
-      context.read<MicrotaskViewModel>().generateMicrotasks(prompt);
+      await context.read<MicrotaskViewModel>().generateMicrotasks(prompt);
       _promptController.clear();
       setState(() => _isGenerating = false);
     }
@@ -185,6 +229,8 @@ class _HomePageState extends State<HomePage> {
                               microtask.status == 'pending',
                           onStart: () =>
                               microtaskViewModel.startSession(microtask),
+                          onDelete: (id) =>
+                              microtaskViewModel.deleteMicrotask(id),
                         );
                       }),
                     ] else ...[
