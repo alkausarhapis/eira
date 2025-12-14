@@ -48,7 +48,7 @@ Aplikasi produktivitas berbasis Flutter yang membantu kamu menyelesaikan tugas d
 ### Clone Repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/alkausarhapis/eira.git
 cd eira
 ```
 
