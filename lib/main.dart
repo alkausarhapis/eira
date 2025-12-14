@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 
 import 'services/app_blocking_service.dart';
@@ -17,6 +18,15 @@ import 'views/settings_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Load environment variables
+  try {
+    await dotenv.load(fileName: ".env");
+    debugPrint('✅ Environment variables loaded');
+  } catch (e) {
+    debugPrint('⚠️ Could not load .env file: $e');
+    debugPrint('⚠️ Make sure to create a .env file with your GEMINI_API_KEY');
+  }
 
   // Initialize blocked apps in Accessibility Service on startup
   try {

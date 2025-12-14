@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../models/microtask_model.dart';
+import '../services/gemini_service.dart';
+import '../services/microtasks_database.dart';
 
 class MicrotaskViewModel extends ChangeNotifier {
   List<MicroTaskModel> _microtasks = [];
@@ -13,6 +15,71 @@ class MicrotaskViewModel extends ChangeNotifier {
   Timer? _timer;
   int? _restTimeRemaining;
   Timer? _restTimer;
+  bool _isGenerating = false;
+  bool _isLoading = true;
+  Function(String)? _onMicrotaskCompleted;
+  Function(String)? _onMicrotaskDeleted;
+
+  final GeminiService _geminiService = GeminiService();
+  final MicrotasksDatabase _database = MicrotasksDatabase.instance;
+
+  MicrotaskViewModel() {
+    _loadMicrotasks();
+  }
+
+  Future<void> _loadMicrotasks() async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      _microtasks = await _database.getAllMicrotasks();
+
+      // Sort: in-progress first, then pending, then done
+      _microtasks.sort((a, b) {
+        const statusOrder = {'in-progress': 0, 'pending': 1, 'done': 2};
+        final aOrder = statusOrder[a.status] ?? 3;
+        final bOrder = statusOrder[b.status] ?? 3;
+        return aOrder.compareTo(bOrder);
+      });
+
+      // Restore active session if there's an in-progress microtask
+      final inProgressTask = _microtasks.firstWhere(
+        (task) => task.status == 'in-progress',
+        orElse: () => _microtasks.first,
+      );
+
+      if (inProgressTask.status == 'in-progress') {
+        _activeSession = inProgressTask;
+        _elapsedTime = inProgressTask.timeTaken;
+
+        // Find the current microtask index
+        _currentMicrotaskIndex = inProgressTask.microtasks.indexWhere(
+          (item) => !item.isCompleted,
+        );
+
+        if (_currentMicrotaskIndex == -1) {
+          // All tasks completed, start timer for completion
+          _currentMicrotaskIndex = inProgressTask.microtasks.length - 1;
+        }
+
+        // Resume timer
+        _isPaused = false;
+        _startTimer();
+
+        debugPrint('✅ Restored active session: ${inProgressTask.judulTarget}');
+        debugPrint(
+          '   Current index: $_currentMicrotaskIndex, Elapsed: $_elapsedTime',
+        );
+      }
+
+      debugPrint('✅ Loaded ${_microtasks.length} microtasks from database');
+    } catch (e) {
+      debugPrint('❌ Error loading microtasks: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 
   List<MicroTaskModel> get microtasks => _microtasks;
   MicroTaskModel? get activeSession => _activeSession;
@@ -20,6 +87,8 @@ class MicrotaskViewModel extends ChangeNotifier {
   Duration get elapsedTime => _elapsedTime;
   bool get isPaused => _isPaused;
   int? get restTimeRemaining => _restTimeRemaining;
+  bool get isGenerating => _isGenerating;
+  bool get isLoading => _isLoading;
 
   String? get currentTaskText {
     if (_activeSession == null) return null;
@@ -32,37 +101,90 @@ class MicrotaskViewModel extends ChangeNotifier {
   bool get hasActiveSession =>
       _activeSession != null && _restTimeRemaining == null;
 
+  void setOnMicrotaskCompleted(Function(String)? callback) {
+    _onMicrotaskCompleted = callback;
+  }
+
+  void setOnMicrotaskDeleted(Function(String)? callback) {
+    _onMicrotaskDeleted = callback;
+  }
+
   void addMicrotask(MicroTaskModel microtask) {
     _microtasks.add(microtask);
     notifyListeners();
   }
 
-  void generateMicrotasks(String prompt) {
-    // Mock generation - in real app this would call AI API
-    final mockTasks = [
-      MicroTaskModel(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        judulTarget: 'Belajar Flutter',
-        deskripsi: 'Target: $prompt',
-        emoji: '📱',
-        status: 'pending',
-        timeTaken: Duration.zero,
-        microtasks: [
-          MicroTaskItem(
-            task: 'Baca dokumentasi Flutter selama 10 menit',
-            restTimeSeconds: 30,
-          ),
-          MicroTaskItem(task: 'Buat widget sederhana', restTimeSeconds: 45),
-          MicroTaskItem(task: 'Coba hot reload', restTimeSeconds: 30),
-        ],
-      ),
-    ];
+  Future<void> deleteMicrotask(String id) async {
+    try {
+      // Get the title before removing
+      final microtask = _microtasks.firstWhere((m) => m.id == id);
+      final deletedTitle = microtask.judulTarget;
 
-    _microtasks.addAll(mockTasks);
-    notifyListeners();
+      _microtasks.removeWhere((m) => m.id == id);
+
+      await _database.deleteMicrotask(id);
+
+      debugPrint('🗑️ Deleted microtask: $id');
+
+      // Notify deletion
+      _onMicrotaskDeleted?.call(deletedTitle);
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('❌ Error deleting microtask: $e');
+    }
   }
 
-  void startSession(MicroTaskModel microtask) {
+  Future<void> generateMicrotasks(String prompt) async {
+    if (_isGenerating) return;
+
+    _isGenerating = true;
+    notifyListeners();
+
+    try {
+      final microtask = await _geminiService.generateMicrotasks(prompt);
+
+      if (microtask != null) {
+        // Add to memory first for instant UI update
+        _microtasks.add(microtask);
+
+        // Re-sort the list
+        _microtasks.sort((a, b) {
+          const statusOrder = {'in-progress': 0, 'pending': 1, 'done': 2};
+          final aOrder = statusOrder[a.status] ?? 3;
+          final bOrder = statusOrder[b.status] ?? 3;
+          return aOrder.compareTo(bOrder);
+        });
+
+        debugPrint('✅ Added new microtask to list: ${microtask.judulTarget}');
+
+        // Update UI immediately
+        _isGenerating = false;
+        notifyListeners();
+
+        // Then save to database in background (don't await)
+        _database
+            .insertMicrotask(microtask)
+            .then((_) {
+              debugPrint('💾 Saved microtask to database: ${microtask.id}');
+            })
+            .catchError((e) {
+              debugPrint('❌ Error saving to database: $e');
+            });
+
+        return; // Exit early to avoid the finally block
+      } else {
+        debugPrint('❌ Failed to generate microtask');
+      }
+    } catch (e) {
+      debugPrint('❌ Error in generateMicrotasks: $e');
+    } finally {
+      _isGenerating = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> startSession(MicroTaskModel microtask) async {
     if (_activeSession != null) return;
 
     final index = _microtasks.indexWhere((m) => m.id == microtask.id);
@@ -73,6 +195,9 @@ class MicrotaskViewModel extends ChangeNotifier {
       _elapsedTime = Duration.zero;
       _isPaused = false;
       _startTimer();
+
+      // Save status to database
+      await _database.updateMicrotask(_microtasks[index]);
       notifyListeners();
     }
   }
@@ -124,15 +249,20 @@ class MicrotaskViewModel extends ChangeNotifier {
     }
   }
 
-  void _completeSession() {
+  Future<void> _completeSession() async {
     if (_activeSession == null) return;
 
+    final completedTitle = _activeSession!.judulTarget;
     final index = _microtasks.indexWhere((m) => m.id == _activeSession!.id);
     if (index != -1) {
       _microtasks[index] = _activeSession!.copyWith(
         status: 'done',
         timeTaken: _elapsedTime,
       );
+
+      // Save completion to database
+      await _database.updateMicrotask(_microtasks[index]);
+      debugPrint('💾 Saved completed session to database');
     }
 
     _timer?.cancel();
@@ -142,6 +272,9 @@ class MicrotaskViewModel extends ChangeNotifier {
     _elapsedTime = Duration.zero;
     _isPaused = false;
     _restTimeRemaining = null;
+
+    // Notify completion
+    _onMicrotaskCompleted?.call(completedTitle);
 
     notifyListeners();
   }
