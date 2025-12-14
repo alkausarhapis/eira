@@ -1,8 +1,10 @@
 package com.example.eira
 
 import android.app.AppOpsManager
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -14,6 +16,7 @@ import com.example.eira.utils.AppManager
 import com.example.eira.utils.PreferencesManager
 import com.example.eira.utils.FocusModeOverlayManager
 import com.example.eira.service.BlockOverlayService
+import com.example.eira.receiver.NotificationBroadcastReceiver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -25,6 +28,7 @@ class MainActivity : FlutterActivity() {
     private lateinit var prefsManager: PreferencesManager
     private var focusModeOverlay: FocusModeOverlayManager? = null
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
+    private var methodChannel: MethodChannel? = null
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -32,7 +36,18 @@ class MainActivity : FlutterActivity() {
         appManager = AppManager(applicationContext)
         prefsManager = PreferencesManager(applicationContext)
         
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
+        methodChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
+        
+        // Set up callback for notification receiver
+        NotificationBroadcastReceiver.onNotificationReceived = { action, appName ->
+            android.util.Log.d("MainActivity", "📨 Forwarding to Flutter: $action for $appName")
+            methodChannel?.invokeMethod("showNotification", mapOf(
+                "action" to action,
+                "appName" to appName
+            ))
+        }
+        
+        methodChannel?.setMethodCallHandler { call, result ->
             when (call.method) {
                 "getInstalledUserApps" -> {
                     coroutineScope.launch {
@@ -87,15 +102,46 @@ class MainActivity : FlutterActivity() {
                 }
                 "setBlockedApps" -> {
                     @Suppress("UNCHECKED_CAST")
-                    val packageNames = call.argument<List<String>>("packageNames")
-                    if (packageNames != null) {
-                        // Update static variable for immediate effect
-                        com.example.eira.service.AppBlockAccessibilityService.blockedApps = packageNames.toSet()
-                        android.util.Log.d("MainActivity", "Set blocked apps: ${packageNames.size} apps")
-                        android.util.Log.d("MainActivity", "Blocked apps list: $packageNames")
+                    val blockedAppsList = call.argument<List<Map<String, Any>>>("blockedApps")
+                    if (blockedAppsList != null) {
+                        // Persist to SharedPreferences for service to reload
+                        val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+                        val editor = prefs.edit()
+                        
+                        // Convert to JSON array
+                        val jsonElements = blockedAppsList.map { app ->
+                            val packageName = app["packageName"] as String
+                            val appName = app["appName"] as String
+                            val limitMillis = (app["limitMillis"] as? Number)?.toLong() ?: 0L
+                            val startTime = (app["startTime"] as? Number)?.toLong() ?: 0L
+                            val isActive = app["isActive"] as? Boolean ?: true
+                            
+                            """{
+                                "packageName":"$packageName",
+                                "appName":"$appName",
+                                "limitMillis":$limitMillis,
+                                "startTime":$startTime,
+                                "isActive":$isActive
+                            }""".replace("\n", "").replace("  ", "")
+                        }
+                        
+                        val jsonArray = "[${jsonElements.joinToString(",")}]"
+                        editor.putString("flutter.blockedApps", jsonArray)
+                        editor.commit()
+                        
+                        android.util.Log.d("MainActivity", "✅ Persisted blocked apps with limits: ${blockedAppsList.size} apps")
+                        android.util.Log.d("MainActivity", "🔍 JSON: $jsonArray")
+                        
+                        // Verify persistence
+                        val verified = prefs.getString("flutter.blockedApps", null)
+                        android.util.Log.d("MainActivity", "🔍 Verified read back: $verified")
+                        
+                        // Force reload in service
+                        com.example.eira.service.AppBlockAccessibilityService.forceReload()
+                        
                         result.success(true)
                     } else {
-                        result.error("INVALID_ARGUMENT", "packageNames required", null)
+                        result.error("INVALID_ARGUMENT", "blockedApps required", null)
                     }
                 }
                 "startBlock" -> {
@@ -138,9 +184,14 @@ class MainActivity : FlutterActivity() {
                     val permissions = mapOf(
                         "overlayGranted" to canDrawOverlays(),
                         "accessibilityGranted" to isAccessibilityServiceEnabled(),
-                        "usageStatsGranted" to hasUsageStatsPermission()
+                        "usageStatsGranted" to hasUsageStatsPermission(),
+                        "batteryOptimizationDisabled" to isBatteryOptimizationDisabled()
                     )
                     result.success(permissions)
+                }
+                "requestBatteryOptimization" -> {
+                    requestBatteryOptimization()
+                    result.success(true)
                 }
                 "startFocusMode" -> {
                     if (focusModeOverlay == null) {
@@ -260,5 +311,33 @@ class MainActivity : FlutterActivity() {
             )
         }
         return mode == AppOpsManager.MODE_ALLOWED
+    }
+
+    private fun isBatteryOptimizationDisabled(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val powerManager = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+            powerManager.isIgnoringBatteryOptimizations(packageName)
+        } else {
+            true
+        }
+    }
+
+    private fun requestBatteryOptimization() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+                intent.data = Uri.parse("package:$packageName")
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(intent)
+            } catch (e: Exception) {
+                android.util.Log.e("MainActivity", "Error requesting battery optimization", e)
+            }
+        }
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        // Clear callback when activity is destroyed
+        NotificationBroadcastReceiver.onNotificationReceived = null
     }
 }

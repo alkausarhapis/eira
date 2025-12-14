@@ -58,14 +58,13 @@ class _BlockDurationModalState extends State<BlockDurationModal> {
     setState(() => _isBlocking = true);
 
     final viewModel = context.read<BlockedAppsViewModel>();
-    final blockDuration = const Duration(
-      hours: 24,
-    ); // Always 24 hours as per spec
+    // Use the selected minutes as daily usage limit
+    final usageLimit = Duration(minutes: minutes);
 
     final success = await viewModel.blockApp(
       packageName: widget.packageName,
       appName: widget.appName,
-      blockDuration: blockDuration,
+      usageLimit: usageLimit,
     );
 
     if (mounted) {
@@ -75,7 +74,9 @@ class _BlockDurationModalState extends State<BlockDurationModal> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${widget.appName} diblokir selama 24 jam'),
+            content: Text(
+              '${widget.appName} akan diblokir selama 24 jam setelah digunakan $minutes menit',
+            ),
             backgroundColor: Theme.of(context).primaryColor,
           ),
         );

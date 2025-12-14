@@ -82,9 +82,20 @@ class BlockedAppsViewModel extends ChangeNotifier {
       // Load from sqflite database
       _blockedApps = await _database.getBlockedApps();
 
-      // Update Accessibility Service with current blocked apps list
-      final packageNames = _blockedApps.map((app) => app.packageName).toList();
-      await _blockingService.setBlockedApps(packageNames);
+      // Update Accessibility Service with full blocked apps data (including limits)
+      final blockedAppsData = _blockedApps
+          .map(
+            (app) => {
+              'packageName': app.packageName,
+              'appName': app.appName,
+              'limitMillis': app.blockDurationMillis, // Daily usage limit
+              'startTime': DateTime.now().millisecondsSinceEpoch,
+              'isActive': app.isActive,
+            },
+          )
+          .toList();
+
+      await _blockingService.setBlockedAppsWithLimits(blockedAppsData);
 
       notifyListeners();
     } catch (e) {
@@ -95,11 +106,13 @@ class BlockedAppsViewModel extends ChangeNotifier {
   Future<bool> blockApp({
     required String packageName,
     required String appName,
-    required Duration blockDuration,
+    required Duration usageLimit,
   }) async {
     try {
       final now = DateTime.now();
-      final unblockTime = now.add(blockDuration);
+      // Block for 24 hours once limit is reached
+      final cooldownPeriod = const Duration(hours: 24);
+      final unblockTime = now.add(cooldownPeriod);
 
       // Create blocked app model
       final blockedApp = BlockedAppModel(
@@ -108,7 +121,8 @@ class BlockedAppsViewModel extends ChangeNotifier {
         blockedUntil: unblockTime.millisecondsSinceEpoch,
         timeSpentSnapshot: 0,
         isBlocked: true,
-        blockDurationMillis: blockDuration.inMilliseconds,
+        blockDurationMillis:
+            usageLimit.inMilliseconds, // This is the usage limit
       );
 
       // Save to database

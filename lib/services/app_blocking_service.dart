@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 class AppBlockingService {
   static const MethodChannel _channel = MethodChannel('com.eira/native_block');
 
-  /// Updates the list of blocked apps in the Accessibility Service
+  /// Updates the list of blocked apps in the Accessibility Service (legacy)
   /// This should be called whenever blocked apps change
   Future<void> setBlockedApps(List<String> packageNames) async {
     try {
@@ -14,6 +14,23 @@ class AppBlockingService {
       debugPrint('✅ Updated blocked apps: ${packageNames.length} apps');
     } catch (e) {
       debugPrint('❌ Error setting blocked apps: $e');
+      rethrow;
+    }
+  }
+
+  /// Updates blocked apps with time limits (new method)
+  Future<void> setBlockedAppsWithLimits(
+    List<Map<String, dynamic>> blockedApps,
+  ) async {
+    try {
+      await _channel.invokeMethod('setBlockedApps', {
+        'blockedApps': blockedApps,
+      });
+      debugPrint(
+        '✅ Updated blocked apps with limits: ${blockedApps.length} apps',
+      );
+    } catch (e) {
+      debugPrint('❌ Error setting blocked apps with limits: $e');
       rethrow;
     }
   }

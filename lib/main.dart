@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 
 import 'services/app_blocking_service.dart';
 import 'services/blocked_apps_database.dart';
+import 'services/notification_service.dart';
 import 'theme/app_theme.dart';
 import 'viewmodels/blocked_apps_viewmodel.dart';
 import 'viewmodels/microtask_viewmodel.dart';
@@ -18,6 +20,25 @@ import 'views/settings_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize notification service
+  await NotificationService.instance.initialize();
+  debugPrint('✅ Notification service initialized');
+
+  // Set up notification listener from native
+  const platform = MethodChannel('com.eira/native_block');
+  platform.setMethodCallHandler((call) async {
+    if (call.method == 'showNotification') {
+      final action = call.arguments['action'] as String;
+      final appName = call.arguments['appName'] as String;
+
+      if (action == 'showOneMinuteWarning') {
+        await NotificationService.instance.showOneMinuteWarning(appName);
+      } else if (action == 'showBlockedNotification') {
+        await NotificationService.instance.showBlockedNotification(appName);
+      }
+    }
+  });
 
   // Load environment variables
   try {

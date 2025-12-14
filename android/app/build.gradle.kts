@@ -13,6 +13,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -45,6 +46,9 @@ flutter {
 }
 
 dependencies {
+    // Core library desugaring (required by flutter_local_notifications)
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    
     // Coroutines (used by BlockOverlayService)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     
