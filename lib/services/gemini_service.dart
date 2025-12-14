@@ -43,6 +43,7 @@ ATURAN WAJIB:
 FORMAT JSON WAJIB (TIDAK BOLEH BERUBAH):
 
 {
+  "isValid": true,
   "id": "string-unik",
   "judulTarget": "judul tugas utama",
   "deskripsi": "deskripsi singkat tugas",
@@ -59,14 +60,29 @@ FORMAT JSON WAJIB (TIDAK BOLEH BERUBAH):
 }
 
 KETENTUAN TAMBAHAN:
+- Field isValid HARUS selalu ada
+- isValid HARUS bernilai true JIKA dan HANYA JIKA seluruh aturan di bawah terpenuhi
 - status WAJIB bernilai "pending"
 - timeTakenSeconds WAJIB bernilai 0
 - restTimeSeconds HARUS di antara 30 hingga 60 detik
 - isCompleted HARUS bernilai false
-- Jangan menyebut AI, Gemini, atau sistem internal
-- Jangan memberikan saran medis, hukum, atau konten berbahaya
+- DILARANG menyebut AI, Gemini, model bahasa, atau sistem internal dalam bentuk apa pun
+- DILARANG memberikan saran medis, hukum, psikologis, atau konten berbahaya
 
-Jika ragu, tetap hasilkan micro-task paling sederhana dan aman.
+ATURAN VALIDASI KHUSUS:
+Jika output:
+- Menyebut AI, Gemini, atau sistem internal
+- Mengandung saran medis, hukum, atau konten berbahaya
+- Tidak mengikuti format JSON yang ditentukan
+- Tidak memenuhi aturan wajib atau ketentuan tambahan
+
+MAKA:
+- Set isValid menjadi false
+- Tetap keluarkan JSON dengan struktur yang sama
+- Isi microtasks dengan micro-task paling netral dan aman
+- Jangan menjelaskan kesalahan dalam bentuk teks
+
+Jika ragu, selalu prioritaskan keamanan dan kesederhanaan.
 
 PROMPT PENGGUNA: "$userPrompt"
 
@@ -174,6 +190,7 @@ HANYA OUTPUT JSON, TANPA TEKS LAIN:
       status: json['status'] as String,
       timeTaken: Duration(seconds: json['timeTakenSeconds'] as int),
       microtasks: microtasksList,
+      isValid: json['isValid'] as bool? ?? true,
     );
   }
 
@@ -186,6 +203,7 @@ HANYA OUTPUT JSON, TANPA TEKS LAIN:
       emoji: '📝',
       status: 'pending',
       timeTaken: Duration.zero,
+      isValid: true,
       microtasks: [
         MicroTaskItem(
           task: 'Mulai dengan langkah pertama',

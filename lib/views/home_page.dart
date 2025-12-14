@@ -64,6 +64,29 @@ class _HomePageState extends State<HomePage> {
           );
         }
       });
+
+      viewModel.setOnInvalidPrompt(() {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.warning_amber, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Tugas ini tidak dapat diproses karena alasan keamanan.',
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.orange.shade700,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      });
     });
   }
 

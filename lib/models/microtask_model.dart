@@ -6,6 +6,7 @@ class MicroTaskModel {
   final String status;
   final Duration timeTaken;
   final String emoji;
+  final bool isValid;
 
   MicroTaskModel({
     required this.id,
@@ -15,6 +16,7 @@ class MicroTaskModel {
     required this.status,
     required this.timeTaken,
     required this.emoji,
+    this.isValid = true,
   });
 
   MicroTaskModel copyWith({
@@ -25,6 +27,7 @@ class MicroTaskModel {
     String? status,
     Duration? timeTaken,
     String? emoji,
+    bool? isValid,
   }) {
     return MicroTaskModel(
       id: id ?? this.id,
@@ -34,6 +37,7 @@ class MicroTaskModel {
       status: status ?? this.status,
       timeTaken: timeTaken ?? this.timeTaken,
       emoji: emoji ?? this.emoji,
+      isValid: isValid ?? this.isValid,
     );
   }
 }

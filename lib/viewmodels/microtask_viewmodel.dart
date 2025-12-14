@@ -19,6 +19,7 @@ class MicrotaskViewModel extends ChangeNotifier {
   bool _isLoading = true;
   Function(String)? _onMicrotaskCompleted;
   Function(String)? _onMicrotaskDeleted;
+  Function()? _onInvalidPrompt;
 
   final GeminiService _geminiService = GeminiService();
   final MicrotasksDatabase _database = MicrotasksDatabase.instance;
@@ -109,6 +110,10 @@ class MicrotaskViewModel extends ChangeNotifier {
     _onMicrotaskDeleted = callback;
   }
 
+  void setOnInvalidPrompt(Function()? callback) {
+    _onInvalidPrompt = callback;
+  }
+
   void addMicrotask(MicroTaskModel microtask) {
     _microtasks.add(microtask);
     notifyListeners();
@@ -145,6 +150,15 @@ class MicrotaskViewModel extends ChangeNotifier {
       final microtask = await _geminiService.generateMicrotasks(prompt);
 
       if (microtask != null) {
+        // Check if prompt is valid
+        if (!microtask.isValid) {
+          debugPrint('⚠️ Invalid prompt detected');
+          _onInvalidPrompt?.call();
+          _isGenerating = false;
+          notifyListeners();
+          return;
+        }
+
         // Add to memory first for instant UI update
         _microtasks.add(microtask);
 
