@@ -244,55 +244,64 @@ class _BlockedAppsPageState extends State<BlockedAppsPage> {
                                     .where(
                                       (app) =>
                                           viewModel
-                                              .getBlockedAppInfo(app.packageName)
+                                              .getBlockedAppInfo(
+                                                app.packageName,
+                                              )
                                               ?.isActive !=
                                           true,
                                     )
                                     .map((app) {
-                                  final blockedInfo = viewModel
-                                      .getBlockedAppInfo(app.packageName);
-                                  return AppListItem(
-                                    app: app,
-                                    blockedInfo: blockedInfo,
-                                    onBlockTap: () => _showBlockDurationModal(
-                                      context,
-                                      app.packageName,
-                                      app.appName,
-                                      app.totalTimeMillis,
-                                    ),
-                                    onUnblockTap: () async {
-                                      final confirmed = await showDialog<bool>(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                          title: const Text(
-                                            'Hentikan Pemblokiran?',
-                                          ),
-                                          content: Text(
-                                            'Apakah Anda yakin ingin menghentikan pemblokiran ${app.appName}?',
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(context, false),
-                                              child: const Text('Batal'),
+                                      final blockedInfo = viewModel
+                                          .getBlockedAppInfo(app.packageName);
+                                      return AppListItem(
+                                        app: app,
+                                        blockedInfo: blockedInfo,
+                                        onBlockTap: () =>
+                                            _showBlockDurationModal(
+                                              context,
+                                              app.packageName,
+                                              app.appName,
+                                              app.totalTimeMillis,
                                             ),
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(context, true),
-                                              child: const Text('Hentikan'),
+                                        onUnblockTap: () async {
+                                          final confirmed = await showDialog<bool>(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                              title: const Text(
+                                                'Hentikan Pemblokiran?',
+                                              ),
+                                              content: Text(
+                                                'Apakah Anda yakin ingin menghentikan pemblokiran ${app.appName}?',
+                                              ),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(
+                                                        context,
+                                                        false,
+                                                      ),
+                                                  child: const Text('Batal'),
+                                                ),
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(
+                                                        context,
+                                                        true,
+                                                      ),
+                                                  child: const Text('Hentikan'),
+                                                ),
+                                              ],
                                             ),
-                                          ],
-                                        ),
-                                      );
+                                          );
 
-                                      if (confirmed == true) {
-                                        await viewModel.unblockApp(
-                                          app.packageName,
-                                        );
-                                      }
-                                    },
-                                  );
-                                }),
+                                          if (confirmed == true) {
+                                            await viewModel.unblockApp(
+                                              app.packageName,
+                                            );
+                                          }
+                                        },
+                                      );
+                                    }),
                               ],
                             ),
                     ),
