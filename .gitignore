@@ -46,3 +46,6 @@ app.*.map.json
 
 # ENV files
 .env
+
+# YoYo AI version control directory
+.yoyo/
