@@ -56,12 +56,48 @@ class _AppListItemState extends State<AppListItem> {
     final seconds = duration.inSeconds.remainder(60);
 
     if (hours > 0) {
-      return '${hours}h ${minutes}m';
+      return '${hours}j ${minutes}m';
     } else if (minutes > 0) {
-      return '${minutes}m ${seconds}s';
+      return '${minutes}m ${seconds}d';
     } else {
-      return '${seconds}s';
+      return '${seconds}d';
     }
+  }
+
+  String _formatDuration(int millis) {
+    final hours = millis ~/ (1000 * 60 * 60);
+    final minutes = (millis % (1000 * 60 * 60)) ~/ (1000 * 60);
+
+    if (hours > 0) {
+      return '${hours}j ${minutes}m';
+    } else {
+      return '${minutes}m';
+    }
+  }
+
+  void _showUnblockConfirmation() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hapus Pembatasan?'),
+        content: Text(
+          'Apakah Anda yakin ingin menghapus pembatasan untuk ${widget.app.appName}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(context);
+              widget.onUnblockTap();
+            },
+            child: const Text('Hapus Pembatasan'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -73,26 +109,38 @@ class _AppListItemState extends State<AppListItem> {
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: Container(
+        leading: SizedBox(
           width: 48,
           height: 48,
-          decoration: BoxDecoration(
-            color: theme.primaryColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
           child: _iconBytes != null
               ? ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.memory(
-                    _iconBytes!,
-                    width: 48,
-                    height: 48,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        Icon(Icons.apps, color: theme.primaryColor),
+                  borderRadius: BorderRadius.circular(20),
+                  child: ColorFiltered(
+                    colorFilter: isBlocked
+                        ? const ColorFilter.mode(
+                            Colors.grey,
+                            BlendMode.saturation,
+                          )
+                        : const ColorFilter.mode(
+                            Colors.transparent,
+                            BlendMode.multiply,
+                          ),
+                    child: Image.memory(
+                      _iconBytes!,
+                      width: 48,
+                      height: 48,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Icon(
+                        Icons.apps,
+                        color: isBlocked ? Colors.grey : theme.primaryColor,
+                      ),
+                    ),
                   ),
                 )
-              : Icon(Icons.apps, color: theme.primaryColor),
+              : Icon(
+                  Icons.apps,
+                  color: isBlocked ? Colors.grey : theme.primaryColor,
+                ),
         ),
         title: Text(
           widget.app.appName,
@@ -105,45 +153,38 @@ class _AppListItemState extends State<AppListItem> {
           children: [
             const SizedBox(height: 4),
             Text(widget.app.formattedTime, style: theme.textTheme.bodyMedium),
-            if (isBlocked) ...[
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: theme.primaryColor.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  'Diblokir • ${_formatRemainingTime(widget.blockedInfo!.remainingTime)}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.primaryColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
           ],
         ),
         trailing: isBlocked
-            ? PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert),
-                onSelected: (value) {
-                  if (value == 'unblock') {
-                    widget.onUnblockTap();
-                  }
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'unblock',
-                    child: Row(
-                      children: [
-                        Icon(Icons.block, size: 20),
-                        SizedBox(width: 12),
-                        Text('Hentikan Pemblokiran'),
-                      ],
+            ? SizedBox(
+                width: 56,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Expanded(
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        icon: Icon(
+                          Icons.hourglass_disabled,
+                          color: theme.primaryColor,
+                          size: 24,
+                        ),
+                        onPressed: _showUnblockConfirmation,
+                        tooltip: 'Hapus pembatasan',
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 2),
+                    Text(
+                      _formatDuration(widget.blockedInfo!.blockDurationMillis),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.primaryColor,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
               )
             : IconButton(
                 icon: Icon(Icons.hourglass_empty, color: theme.primaryColor),

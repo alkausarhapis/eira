@@ -34,6 +34,182 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  void _showPrivacyPolicy(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Kebijakan Privasi'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Eira berkomitmen untuk melindungi privasi Anda. Kebijakan privasi ini menjelaskan bagaimana kami mengumpulkan, menggunakan, dan melindungi informasi Anda.\n',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const Text(
+                '1. Pengumpulan Data\n',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const Text(
+                'Eira mengumpulkan data berikut untuk menjalankan fungsinya:\n'
+                '• Daftar aplikasi yang terinstal di perangkat Anda\n'
+                '• Statistik penggunaan aplikasi (waktu penggunaan)\n'
+                '• Preferensi pembatasan aplikasi yang Anda atur\n\n',
+              ),
+              const Text(
+                '2. Penggunaan Data\n',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const Text(
+                'Data yang dikumpulkan digunakan untuk:\n'
+                '• Menampilkan waktu penggunaan aplikasi\n'
+                '• Menjalankan fitur pembatasan aplikasi\n'
+                '• Menyimpan preferensi pengaturan Anda\n\n',
+              ),
+              const Text(
+                '3. Penyimpanan Data\n',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const Text(
+                'Semua data disimpan secara lokal di perangkat Anda. Kami tidak mengirim, menyimpan, atau membagikan data Anda ke server eksternal atau pihak ketiga.\n\n',
+              ),
+              const Text(
+                '4. Izin Aplikasi\n',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const Text(
+                'Eira memerlukan izin berikut:\n'
+                '• Aksesibilitas: Untuk mendeteksi aplikasi yang sedang aktif\n'
+                '• Statistik Penggunaan: Untuk melihat waktu penggunaan aplikasi\n'
+                '• Tampilan di Atas Aplikasi Lain: Untuk menampilkan overlay pemblokiran\n\n'
+                'Izin ini tidak digunakan untuk mengakses data pribadi atau sensitif Anda.\n\n',
+              ),
+              const Text(
+                '5. Keamanan\n',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const Text(
+                'Kami menerapkan langkah-langkah keamanan untuk melindungi data Anda dari akses yang tidak sah. Karena semua data disimpan secara lokal, keamanan data bergantung pada keamanan perangkat Anda.\n\n',
+              ),
+              const Text(
+                '6. Hak Anda\n',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const Text(
+                'Anda dapat:\n'
+                '• Menghapus data aplikasi kapan saja melalui pengaturan sistem Android\n'
+                '• Mencabut izin aplikasi melalui pengaturan sistem Android\n'
+                '• Menghapus aplikasi untuk menghapus semua data yang tersimpan\n\n',
+              ),
+              const Text(
+                'Terakhir diperbarui: 9 Januari 2026',
+                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showTermsConditions(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Syarat & Ketentuan'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Dengan menggunakan Eira, Anda menyetujui syarat dan ketentuan berikut:\n',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const Text(
+                '1. Penggunaan Aplikasi\n',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const Text(
+                'Eira adalah aplikasi produktivitas yang dirancang untuk membantu Anda mengelola waktu penggunaan aplikasi. Anda bertanggung jawab penuh atas cara Anda menggunakan aplikasi ini.\n\n',
+              ),
+              const Text(
+                '2. Izin dan Aksesibilitas\n',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const Text(
+                'Eira memerlukan izin Aksesibilitas untuk menjalankan fungsinya. Izin ini hanya digunakan untuk:\n'
+                '• Mendeteksi aplikasi yang sedang berjalan\n'
+                '• Menampilkan overlay pemblokiran\n'
+                '• Melacak waktu penggunaan aplikasi\n\n'
+                'Eira TIDAK akan:\n'
+                '• Membaca konten layar atau teks yang Anda ketik\n'
+                '• Mengakses data pribadi atau sensitif\n'
+                '• Mengirim data ke server eksternal\n\n',
+              ),
+              const Text(
+                '3. Kepatuhan Terhadap Aplikasi Perbankan\n',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const Text(
+                'Eira dirancang untuk tidak mengganggu aplikasi perbankan dan aplikasi keamanan. Fitur pemblokiran secara otomatis dinonaktifkan saat aplikasi sensitif terdeteksi.\n\n',
+              ),
+              const Text(
+                '4. Batasan Tanggung Jawab\n',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const Text(
+                'Eira disediakan "sebagaimana adanya" tanpa jaminan apa pun. Kami tidak bertanggung jawab atas:\n'
+                '• Kehilangan data akibat kesalahan penggunaan\n'
+                '• Masalah kompatibilitas dengan perangkat tertentu\n'
+                '• Gangguan pada aplikasi lain yang tidak disengaja\n\n',
+              ),
+              const Text(
+                '5. Penghentian Layanan\n',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const Text(
+                'Anda dapat berhenti menggunakan Eira kapan saja dengan:\n'
+                '• Menonaktifkan layanan Aksesibilitas di pengaturan sistem\n'
+                '• Menghapus aplikasi dari perangkat Anda\n\n',
+              ),
+              const Text(
+                '6. Perubahan Syarat\n',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const Text(
+                'Kami berhak mengubah syarat dan ketentuan ini kapan saja. Perubahan akan diinformasikan melalui pembaruan aplikasi.\n\n',
+              ),
+              const Text(
+                '7. Kontak\n',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const Text(
+                'Jika Anda memiliki pertanyaan tentang syarat dan ketentuan ini, silakan hubungi kami melalui pengaturan aplikasi.\n\n',
+              ),
+              const Text(
+                'Terakhir diperbarui: 9 Januari 2026',
+                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -226,72 +402,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 ],
               ),
 
-              // Limits Section
-              _SettingsSection(
-                title: 'Batasan',
-                children: [
-                  Card(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    child: ListTile(
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: theme.primaryColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(Icons.timer, color: theme.primaryColor),
-                      ),
-                      title: Text(
-                        'Durasi Istirahat',
-                        style: theme.textTheme.bodyLarge,
-                      ),
-                      subtitle: Text(
-                        '30 - 60 detik',
-                        style: theme.textTheme.bodyMedium,
-                      ),
-                      trailing: Icon(Icons.chevron_right),
-                      onTap: () {
-                        // Placeholder for future implementation
-                      },
-                    ),
-                  ),
-                  Card(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    child: ListTile(
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: theme.primaryColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          Icons.notifications,
-                          color: theme.primaryColor,
-                        ),
-                      ),
-                      title: Text(
-                        'Notifikasi',
-                        style: theme.textTheme.bodyLarge,
-                      ),
-                      subtitle: Text(
-                        'Atur pengingat dan pemberitahuan',
-                        style: theme.textTheme.bodyMedium,
-                      ),
-                      trailing: Icon(Icons.chevron_right),
-                      onTap: () {
-                        // Placeholder for future implementation
-                      },
-                    ),
-                  ),
-                ],
-              ),
-
               // About Section
               _SettingsSection(
                 title: 'Tentang',
@@ -360,9 +470,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         style: theme.textTheme.bodyLarge,
                       ),
                       trailing: Icon(Icons.chevron_right),
-                      onTap: () {
-                        // Placeholder for future implementation
-                      },
+                      onTap: () => _showPrivacyPolicy(context),
                     ),
                   ),
                   Card(
@@ -380,9 +488,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         style: theme.textTheme.bodyLarge,
                       ),
                       trailing: Icon(Icons.chevron_right),
-                      onTap: () {
-                        // Placeholder for future implementation
-                      },
+                      onTap: () => _showTermsConditions(context),
                     ),
                   ),
                 ],

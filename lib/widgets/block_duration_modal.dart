@@ -158,6 +158,7 @@ class _BlockDurationModalState extends State<BlockDurationModal> {
                       });
                     },
                     selectedColor: theme.primaryColor,
+                    checkmarkColor: Colors.white,
                     labelStyle: TextStyle(
                       color: isSelected ? Colors.white : null,
                       fontWeight: isSelected ? FontWeight.w600 : null,
@@ -223,6 +224,13 @@ class _BlockDurationModalState extends State<BlockDurationModal> {
                       onPressed: _isBlocking
                           ? null
                           : () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                          color: theme.brightness == Brightness.dark
+                              ? Colors.white54
+                              : theme.primaryColor,
+                        ),
+                      ),
                       child: const Text('Batal'),
                     ),
                   ),
