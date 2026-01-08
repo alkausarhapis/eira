@@ -128,59 +128,172 @@ class _BlockedAppsPageState extends State<BlockedAppsPage> {
                                 ),
                               ],
                             )
-                          : ListView.builder(
+                          : ListView(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16,
                               ),
-                              itemCount: viewModel.installedApps.length,
-                              itemBuilder: (context, index) {
-                                final app = viewModel.installedApps[index];
-                                final blockedInfo = viewModel.getBlockedAppInfo(
-                                  app.packageName,
-                                );
-
-                                return AppListItem(
-                                  app: app,
-                                  blockedInfo: blockedInfo,
-                                  onBlockTap: () => _showBlockDurationModal(
-                                    context,
-                                    app.packageName,
-                                    app.appName,
-                                    app.totalTimeMillis,
+                              children: [
+                                // Blocked Apps Section
+                                if (viewModel.installedApps.any(
+                                  (app) =>
+                                      viewModel
+                                          .getBlockedAppInfo(app.packageName)
+                                          ?.isActive ==
+                                      true,
+                                )) ...[
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      0,
+                                      8,
+                                      0,
+                                      12,
+                                    ),
+                                    child: Text(
+                                      'Aplikasi Dibatasi',
+                                      style: theme.textTheme.bodyLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            color: theme.primaryColor,
+                                          ),
+                                    ),
                                   ),
-                                  onUnblockTap: () async {
-                                    final confirmed = await showDialog<bool>(
-                                      context: context,
-                                      builder: (context) => AlertDialog(
-                                        title: const Text(
-                                          'Hentikan Pemblokiran?',
-                                        ),
-                                        content: Text(
-                                          'Apakah Anda yakin ingin menghentikan pemblokiran ${app.appName}?',
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(context, false),
-                                            child: const Text('Batal'),
-                                          ),
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(context, true),
-                                            child: const Text('Hentikan'),
-                                          ),
-                                        ],
-                                      ),
-                                    );
+                                  ...viewModel.installedApps
+                                      .where(
+                                        (app) =>
+                                            viewModel
+                                                .getBlockedAppInfo(
+                                                  app.packageName,
+                                                )
+                                                ?.isActive ==
+                                            true,
+                                      )
+                                      .map((app) {
+                                        final blockedInfo = viewModel
+                                            .getBlockedAppInfo(app.packageName);
+                                        return AppListItem(
+                                          app: app,
+                                          blockedInfo: blockedInfo,
+                                          onBlockTap: () =>
+                                              _showBlockDurationModal(
+                                                context,
+                                                app.packageName,
+                                                app.appName,
+                                                app.totalTimeMillis,
+                                              ),
+                                          onUnblockTap: () async {
+                                            final confirmed = await showDialog<bool>(
+                                              context: context,
+                                              builder: (context) => AlertDialog(
+                                                title: const Text(
+                                                  'Hentikan Pemblokiran?',
+                                                ),
+                                                content: Text(
+                                                  'Apakah Anda yakin ingin menghentikan pemblokiran ${app.appName}?',
+                                                ),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed: () =>
+                                                        Navigator.pop(
+                                                          context,
+                                                          false,
+                                                        ),
+                                                    child: const Text('Batal'),
+                                                  ),
+                                                  TextButton(
+                                                    onPressed: () =>
+                                                        Navigator.pop(
+                                                          context,
+                                                          true,
+                                                        ),
+                                                    child: const Text(
+                                                      'Hentikan',
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
 
-                                    if (confirmed == true) {
-                                      await viewModel.unblockApp(
-                                        app.packageName,
+                                            if (confirmed == true) {
+                                              await viewModel.unblockApp(
+                                                app.packageName,
+                                              );
+                                            }
+                                          },
+                                        );
+                                      }),
+                                  const SizedBox(height: 16),
+                                ],
+
+                                // All Apps Section
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    0,
+                                    8,
+                                    0,
+                                    12,
+                                  ),
+                                  child: Text(
+                                    'Semua Aplikasi',
+                                    style: theme.textTheme.bodyLarge?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: theme.primaryColor,
+                                    ),
+                                  ),
+                                ),
+                                ...viewModel.installedApps
+                                    .where(
+                                      (app) =>
+                                          viewModel
+                                              .getBlockedAppInfo(app.packageName)
+                                              ?.isActive !=
+                                          true,
+                                    )
+                                    .map((app) {
+                                  final blockedInfo = viewModel
+                                      .getBlockedAppInfo(app.packageName);
+                                  return AppListItem(
+                                    app: app,
+                                    blockedInfo: blockedInfo,
+                                    onBlockTap: () => _showBlockDurationModal(
+                                      context,
+                                      app.packageName,
+                                      app.appName,
+                                      app.totalTimeMillis,
+                                    ),
+                                    onUnblockTap: () async {
+                                      final confirmed = await showDialog<bool>(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: const Text(
+                                            'Hentikan Pemblokiran?',
+                                          ),
+                                          content: Text(
+                                            'Apakah Anda yakin ingin menghentikan pemblokiran ${app.appName}?',
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, false),
+                                              child: const Text('Batal'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, true),
+                                              child: const Text('Hentikan'),
+                                            ),
+                                          ],
+                                        ),
                                       );
-                                    }
-                                  },
-                                );
-                              },
+
+                                      if (confirmed == true) {
+                                        await viewModel.unblockApp(
+                                          app.packageName,
+                                        );
+                                      }
+                                    },
+                                  );
+                                }),
+                              ],
                             ),
                     ),
             ),

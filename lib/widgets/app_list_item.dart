@@ -50,20 +50,6 @@ class _AppListItemState extends State<AppListItem> {
     }
   }
 
-  String _formatRemainingTime(Duration duration) {
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes.remainder(60);
-    final seconds = duration.inSeconds.remainder(60);
-
-    if (hours > 0) {
-      return '${hours}j ${minutes}m';
-    } else if (minutes > 0) {
-      return '${minutes}m ${seconds}d';
-    } else {
-      return '${seconds}d';
-    }
-  }
-
   String _formatDuration(int millis) {
     final hours = millis ~/ (1000 * 60 * 60);
     final minutes = (millis % (1000 * 60 * 60)) ~/ (1000 * 60);

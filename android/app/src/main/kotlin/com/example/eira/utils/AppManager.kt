@@ -31,7 +31,8 @@ class AppManager(private val context: Context) {
         val userApps = installedApps.filter { appInfo ->
             val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
             val isUpdatedSystem = (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
-            !isSystem || isUpdatedSystem
+            val isEiraApp = appInfo.packageName == context.packageName
+            (!isSystem || isUpdatedSystem) && !isEiraApp
         }
         
         // Get all usage stats at once for efficiency

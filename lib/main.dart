@@ -17,7 +17,7 @@ import 'views/settings_page.dart';
 // TODO: Remove logging
 // TODO: Remove smell codes
 // TODO: Remove unnecessary comments & codes
-
+// TODO: Hapus semua kata kata "Pembatasan Aplikasi" ganti jadi "Pemblokiran Aplikasi"
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
