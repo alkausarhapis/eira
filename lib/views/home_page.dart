@@ -178,16 +178,27 @@ class _HomePageState extends State<HomePage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const LogoWidget(),
-                  IconButton(
-                    onPressed: () => themeViewModel.toggleTheme(),
-                    icon: Icon(
-                      themeViewModel.isDarkMode
-                          ? Icons.light_mode
-                          : Icons.dark_mode,
-                    ),
-                    tooltip: themeViewModel.isDarkMode
-                        ? 'Mode Terang'
-                        : 'Mode Malam',
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => context
+                            .read<MicrotaskViewModel>()
+                            .refreshMicrotasks(),
+                        icon: const Icon(Icons.refresh),
+                        tooltip: 'Refresh',
+                      ),
+                      IconButton(
+                        onPressed: () => themeViewModel.toggleTheme(),
+                        icon: Icon(
+                          themeViewModel.isDarkMode
+                              ? Icons.light_mode
+                              : Icons.dark_mode,
+                        ),
+                        tooltip: themeViewModel.isDarkMode
+                            ? 'Mode Terang'
+                            : 'Mode Malam',
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -195,101 +206,100 @@ class _HomePageState extends State<HomePage> {
 
             // Scrollable content
             Expanded(
-              child: RefreshIndicator(
-                onRefresh: () async {
-                  await context.read<MicrotaskViewModel>().refreshMicrotasks();
-                },
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Prompt Section
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Prompt Section
+                    Text(
+                      'Apa yang ingin kamu selesaikan?',
+                      style: theme.textTheme.displayMedium,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _promptController,
+                      maxLines: 4,
+                      decoration: const InputDecoration(
+                        hintText:
+                            'Contoh: Belajar Flutter untuk membuat aplikasi mobile',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    PrimaryButton(
+                      text: 'Generate Micro-tasks',
+                      icon: Icons.auto_awesome,
+                      onPressed: () => _generateMicrotasks(context),
+                      isLoading: _isGenerating,
+                    ),
+                    const SizedBox(height: 32),
+
+                    // Active Session
+                    if (microtaskViewModel.activeSession != null) ...[
+                      ActiveSessionWidget(
+                        currentTask: microtaskViewModel.currentTaskText ?? '',
+                        sessionTitle:
+                            microtaskViewModel.activeSession!.judulTarget,
+                        sessionEmoji: microtaskViewModel.activeSession!.emoji,
+                        elapsedTime: microtaskViewModel.elapsedTime,
+                        isPaused: microtaskViewModel.isPaused,
+                        restTimeRemaining: microtaskViewModel.restTimeRemaining,
+                        onPause: () => microtaskViewModel.pauseSession(),
+                        onComplete: () =>
+                            microtaskViewModel.completeCurrentMicrotask(),
+                        onAbandon: () => microtaskViewModel.abandonSession(),
+                        onSkipRest: () => microtaskViewModel.skipRest(),
+                      ),
+                      const SizedBox(height: 32),
+                    ],
+
+                    // Microtask List
+                    if (microtaskViewModel.microtasks.isNotEmpty) ...[
                       Text(
-                        'Apa yang ingin kamu selesaikan?',
+                        'Daftar Micro-task',
                         style: theme.textTheme.displayMedium,
                       ),
                       const SizedBox(height: 16),
-                      TextField(
-                        controller: _promptController,
-                        maxLines: 4,
-                        decoration: const InputDecoration(
-                          hintText:
-                              'Contoh: Belajar Flutter untuk membuat aplikasi mobile',
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      PrimaryButton(
-                        text: 'Generate Micro-tasks',
-                        icon: Icons.auto_awesome,
-                        onPressed: () => _generateMicrotasks(context),
-                        isLoading: _isGenerating,
-                      ),
-                      const SizedBox(height: 32),
-
-                      // Active Session
-                      if (microtaskViewModel.activeSession != null) ...[
-                        ActiveSessionWidget(
-                          currentTask: microtaskViewModel.currentTaskText ?? '',
-                          elapsedTime: microtaskViewModel.elapsedTime,
-                          isPaused: microtaskViewModel.isPaused,
-                          restTimeRemaining:
-                              microtaskViewModel.restTimeRemaining,
-                          onPause: () => microtaskViewModel.pauseSession(),
-                          onComplete: () =>
-                              microtaskViewModel.completeCurrentMicrotask(),
-                        ),
-                        const SizedBox(height: 32),
-                      ],
-
-                      // Microtask List
-                      if (microtaskViewModel.microtasks.isNotEmpty) ...[
-                        Text(
-                          'Daftar Micro-task',
-                          style: theme.textTheme.displayMedium,
-                        ),
-                        const SizedBox(height: 16),
-                        ...microtaskViewModel.microtasks.map((microtask) {
-                          return MicrotaskCard(
-                            microtask: microtask,
-                            canStart:
-                                !microtaskViewModel.hasActiveSession &&
-                                microtask.status == 'pending',
-                            onStart: () =>
-                                microtaskViewModel.startSession(microtask),
-                            onDelete: (id) =>
-                                microtaskViewModel.deleteMicrotask(id),
-                          );
-                        }),
-                      ] else ...[
-                        Center(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 40),
-                            child: Column(
-                              children: [
-                                Icon(
-                                  Icons.task_alt,
-                                  size: 64,
-                                  color: theme.textTheme.bodyMedium?.color,
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'Belum ada micro-task',
-                                  style: theme.textTheme.bodyLarge,
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Mulai dengan menuliskan apa yang ingin kamu selesaikan',
-                                  style: theme.textTheme.bodyMedium,
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            ),
+                      ...microtaskViewModel.microtasks.map((microtask) {
+                        return MicrotaskCard(
+                          microtask: microtask,
+                          canStart:
+                              !microtaskViewModel.hasActiveSession &&
+                              microtask.status == 'pending',
+                          onStart: () =>
+                              microtaskViewModel.startSession(microtask),
+                          onDelete: (id) =>
+                              microtaskViewModel.deleteMicrotask(id),
+                        );
+                      }),
+                    ] else ...[
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 40),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.task_alt,
+                                size: 64,
+                                color: theme.textTheme.bodyMedium?.color,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Belum ada micro-task',
+                                style: theme.textTheme.bodyLarge,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Mulai dengan menuliskan apa yang ingin kamu selesaikan',
+                                style: theme.textTheme.bodyMedium,
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
                           ),
                         ),
-                      ],
+                      ),
                     ],
-                  ),
+                  ],
                 ),
               ),
             ),

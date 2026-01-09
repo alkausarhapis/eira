@@ -321,6 +321,45 @@ class MicrotaskViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> abandonSession() async {
+    if (_activeSession == null) return;
+
+    final index = _microtasks.indexWhere((m) => m.id == _activeSession!.id);
+    if (index != -1) {
+      _microtasks[index] = _activeSession!.copyWith(
+        status: 'pending',
+        timeTaken: Duration.zero,
+      );
+
+      // Reset completion status for all tasks
+      for (var task in _microtasks[index].microtasks) {
+        task.isCompleted = false;
+      }
+
+      // Save to database
+      await _database.updateMicrotask(_microtasks[index]);
+      debugPrint('🚫 Abandoned session: ${_activeSession!.judulTarget}');
+    }
+
+    _timer?.cancel();
+    _restTimer?.cancel();
+    _activeSession = null;
+    _currentMicrotaskIndex = 0;
+    _elapsedTime = Duration.zero;
+    _isPaused = false;
+    _restTimeRemaining = null;
+
+    notifyListeners();
+  }
+
+  void skipRest() {
+    if (_restTimeRemaining == null) return;
+
+    _restTimer?.cancel();
+    _restTimeRemaining = null;
+    _moveToNextMicrotask();
+  }
+
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!_isPaused) {
