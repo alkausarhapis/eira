@@ -65,9 +65,9 @@ class _AppListItemState extends State<AppListItem> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Hapus Pembatasan?'),
+        title: const Text('Hapus Pemblokiran?'),
         content: Text(
-          'Apakah Anda yakin ingin menghapus pembatasan untuk ${widget.app.appName}?',
+          'Apakah Anda yakin ingin menghapus pemblokiran untuk ${widget.app.appName}?',
         ),
         actions: [
           TextButton(
@@ -79,7 +79,7 @@ class _AppListItemState extends State<AppListItem> {
               Navigator.pop(context);
               widget.onUnblockTap();
             },
-            child: const Text('Hapus Pembatasan'),
+            child: const Text('Hapus Pemblokiran'),
           ),
         ],
       ),
@@ -157,7 +157,7 @@ class _AppListItemState extends State<AppListItem> {
                           color: theme.primaryColor,
                           size: 24,
                         ),
-                        onPressed: _showUnblockConfirmation,
+                        onPressed: widget.onUnblockTap,
                         tooltip: 'Hapus pembatasan',
                       ),
                     ),
