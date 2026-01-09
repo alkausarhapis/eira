@@ -246,13 +246,6 @@ class _CreateMicrotaskPageState extends State<CreateMicrotaskPage> {
                                 _selectedEmoji,
                                 style: const TextStyle(fontSize: 64),
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Tap untuk ubah emoji',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.primaryColor,
-                                ),
-                              ),
                             ],
                           ),
                         ),
@@ -271,8 +264,7 @@ class _CreateMicrotaskPageState extends State<CreateMicrotaskPage> {
                     TextField(
                       controller: _titleController,
                       decoration: const InputDecoration(
-                        hintText: 'Contoh: Belajar Flutter',
-                        border: OutlineInputBorder(),
+                        hintText: 'Membersihkan kamar',
                       ),
                       maxLines: 1,
                     ),
@@ -290,7 +282,6 @@ class _CreateMicrotaskPageState extends State<CreateMicrotaskPage> {
                       controller: _descController,
                       decoration: const InputDecoration(
                         hintText: 'Jelaskan tujuan dari target ini',
-                        border: OutlineInputBorder(),
                       ),
                       maxLines: 3,
                     ),

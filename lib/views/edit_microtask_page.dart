@@ -192,7 +192,6 @@ class _EditMicrotaskPageState extends State<EditMicrotaskPage> {
                       controller: _titleController,
                       decoration: const InputDecoration(
                         hintText: 'Masukkan judul target',
-                        border: OutlineInputBorder(),
                       ),
                       maxLines: 1,
                     ),
@@ -210,7 +209,6 @@ class _EditMicrotaskPageState extends State<EditMicrotaskPage> {
                       controller: _descController,
                       decoration: const InputDecoration(
                         hintText: 'Masukkan deskripsi singkat',
-                        border: OutlineInputBorder(),
                       ),
                       maxLines: 3,
                     ),
