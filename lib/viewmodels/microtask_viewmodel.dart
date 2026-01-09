@@ -91,6 +91,10 @@ class MicrotaskViewModel extends ChangeNotifier {
   bool get isGenerating => _isGenerating;
   bool get isLoading => _isLoading;
 
+  Future<void> refreshMicrotasks() async {
+    await _loadMicrotasks();
+  }
+
   String? get currentTaskText {
     if (_activeSession == null) return null;
     if (_currentMicrotaskIndex >= _activeSession!.microtasks.length) {
@@ -137,6 +141,30 @@ class MicrotaskViewModel extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('❌ Error deleting microtask: $e');
+    }
+  }
+
+  Future<void> updateMicrotaskDetails(
+    String id,
+    String newTitle,
+    String newDescription,
+    List<MicroTaskItem> newItems,
+  ) async {
+    try {
+      final index = _microtasks.indexWhere((m) => m.id == id);
+      if (index != -1) {
+        _microtasks[index] = _microtasks[index].copyWith(
+          judulTarget: newTitle,
+          deskripsi: newDescription,
+          microtasks: newItems,
+        );
+
+        await _database.updateMicrotask(_microtasks[index]);
+        debugPrint('✏️ Updated microtask: $id');
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('❌ Error updating microtask: $e');
     }
   }
 

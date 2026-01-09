@@ -61,31 +61,6 @@ class _AppListItemState extends State<AppListItem> {
     }
   }
 
-  void _showUnblockConfirmation() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Hapus Pemblokiran?'),
-        content: Text(
-          'Apakah Anda yakin ingin menghapus pemblokiran untuk ${widget.app.appName}?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(context);
-              widget.onUnblockTap();
-            },
-            child: const Text('Hapus Pemblokiran'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

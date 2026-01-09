@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/microtask_model.dart';
+import '../views/edit_microtask_page.dart';
 
 class MicrotaskCard extends StatefulWidget {
   final MicroTaskModel microtask;
@@ -22,6 +23,15 @@ class MicrotaskCard extends StatefulWidget {
 
 class _MicrotaskCardState extends State<MicrotaskCard> {
   bool _isExpanded = false;
+
+  void _navigateToEditPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditMicrotaskPage(microtask: widget.microtask),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -128,6 +138,13 @@ class _MicrotaskCardState extends State<MicrotaskCard> {
                           ],
                         ),
                       ),
+                      if (widget.microtask.status != 'in-progress' &&
+                          widget.microtask.status != 'done')
+                        IconButton(
+                          icon: const Icon(Icons.edit, size: 20),
+                          onPressed: _navigateToEditPage,
+                          tooltip: 'Edit',
+                        ),
                       Icon(
                         _isExpanded
                             ? Icons.keyboard_arrow_up
