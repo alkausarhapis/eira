@@ -277,7 +277,7 @@ class MicrotaskViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void completeCurrentMicrotask() {
+  Future<void> completeCurrentMicrotask() async {
     if (_activeSession == null) return;
 
     final currentItem = _activeSession!.microtasks[_currentMicrotaskIndex];
@@ -285,6 +285,14 @@ class MicrotaskViewModel extends ChangeNotifier {
 
     _timer?.cancel();
     _isPaused = true;
+
+    // Save progress to database immediately
+    final index = _microtasks.indexWhere((m) => m.id == _activeSession!.id);
+    if (index != -1) {
+      _microtasks[index] = _activeSession!.copyWith(timeTaken: _elapsedTime);
+      await _database.updateMicrotask(_microtasks[index]);
+      debugPrint('💾 Saved task completion progress to database');
+    }
 
     // Start rest timer
     _restTimeRemaining = currentItem.restTimeSeconds;

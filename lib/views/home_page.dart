@@ -39,7 +39,7 @@ class _HomePageState extends State<HomePage> {
                   Expanded(child: Text('Micro-task "$title" diselesaikan!')),
                 ],
               ),
-              backgroundColor: const Color(0xFF9747FF),
+              backgroundColor: Colors.green,
               behavior: SnackBarBehavior.floating,
               duration: const Duration(seconds: 3),
             ),
@@ -267,23 +267,53 @@ class _HomePageState extends State<HomePage> {
                     ],
 
                     if (microtaskViewModel.microtasks.isNotEmpty) ...[
-                      Text(
-                        'Daftar Micro-task',
-                        style: theme.textTheme.displayMedium,
-                      ),
-                      const SizedBox(height: 16),
-                      ...microtaskViewModel.microtasks.map((microtask) {
-                        return MicrotaskCard(
-                          microtask: microtask,
-                          canStart:
-                              !microtaskViewModel.hasActiveSession &&
-                              microtask.status == 'pending',
-                          onStart: () =>
-                              microtaskViewModel.startSession(microtask),
-                          onDelete: (id) =>
-                              microtaskViewModel.deleteMicrotask(id),
-                        );
-                      }),
+                      // Active and Pending Tasks Section
+                      if (microtaskViewModel.microtasks.any(
+                        (m) => m.status != 'done',
+                      )) ...[
+                        Text(
+                          'Daftar Micro-task',
+                          style: theme.textTheme.displayMedium,
+                        ),
+                        const SizedBox(height: 16),
+                        ...microtaskViewModel.microtasks
+                            .where((microtask) => microtask.status != 'done')
+                            .map((microtask) {
+                              return MicrotaskCard(
+                                microtask: microtask,
+                                canStart:
+                                    !microtaskViewModel.hasActiveSession &&
+                                    microtask.status == 'pending',
+                                onStart: () =>
+                                    microtaskViewModel.startSession(microtask),
+                                onDelete: (id) =>
+                                    microtaskViewModel.deleteMicrotask(id),
+                              );
+                            }),
+                        const SizedBox(height: 32),
+                      ],
+
+                      // Finished Tasks Section
+                      if (microtaskViewModel.microtasks.any(
+                        (m) => m.status == 'done',
+                      )) ...[
+                        Text(
+                          'Micro-task Selesai',
+                          style: theme.textTheme.displayMedium,
+                        ),
+                        const SizedBox(height: 16),
+                        ...microtaskViewModel.microtasks
+                            .where((microtask) => microtask.status == 'done')
+                            .map((microtask) {
+                              return MicrotaskCard(
+                                microtask: microtask,
+                                canStart: false,
+                                onStart: () {},
+                                onDelete: (id) =>
+                                    microtaskViewModel.deleteMicrotask(id),
+                              );
+                            }),
+                      ],
                     ] else ...[
                       Center(
                         child: Padding(
