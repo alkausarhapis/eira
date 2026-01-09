@@ -123,6 +123,29 @@ class MicrotaskViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> addAndSaveMicrotask(MicroTaskModel microtask) async {
+    try {
+      // Add to memory first
+      _microtasks.add(microtask);
+
+      // Re-sort the list
+      _microtasks.sort((a, b) {
+        const statusOrder = {'in-progress': 0, 'pending': 1, 'done': 2};
+        final aOrder = statusOrder[a.status] ?? 3;
+        final bOrder = statusOrder[b.status] ?? 3;
+        return aOrder.compareTo(bOrder);
+      });
+
+      notifyListeners();
+
+      // Save to database
+      await _database.insertMicrotask(microtask);
+      debugPrint('💾 Saved manually created microtask: ${microtask.id}');
+    } catch (e) {
+      debugPrint('❌ Error saving microtask: $e');
+    }
+  }
+
   Future<void> deleteMicrotask(String id) async {
     try {
       // Get the title before removing

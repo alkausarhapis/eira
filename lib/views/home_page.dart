@@ -8,6 +8,7 @@ import '../widgets/active_session_widget.dart';
 import '../widgets/logo_widget.dart';
 import '../widgets/microtask_card.dart';
 import '../widgets/primary_button.dart';
+import 'create_microtask_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -232,9 +233,21 @@ class _HomePageState extends State<HomePage> {
                       onPressed: () => _generateMicrotasks(context),
                       isLoading: _isGenerating,
                     ),
-                    const SizedBox(height: 32),
+                    Center(
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const CreateMicrotaskPage(),
+                            ),
+                          );
+                        },
+                        child: const Text('atau buat micro-task manual'),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
 
-                    // Active Session
                     if (microtaskViewModel.activeSession != null) ...[
                       ActiveSessionWidget(
                         currentTask: microtaskViewModel.currentTaskText ?? '',
@@ -253,7 +266,6 @@ class _HomePageState extends State<HomePage> {
                       const SizedBox(height: 32),
                     ],
 
-                    // Microtask List
                     if (microtaskViewModel.microtasks.isNotEmpty) ...[
                       Text(
                         'Daftar Micro-task',
