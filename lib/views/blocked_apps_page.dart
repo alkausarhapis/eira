@@ -19,6 +19,11 @@ class _BlockedAppsPageState extends State<BlockedAppsPage> {
   @override
   void initState() {
     super.initState();
+    // Listen to search controller changes to rebuild UI
+    _searchController.addListener(() {
+      setState(() {});
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final viewModel = context.read<BlockedAppsViewModel>();
       viewModel.checkPermissions();
@@ -77,8 +82,10 @@ class _BlockedAppsPageState extends State<BlockedAppsPage> {
                           ? IconButton(
                               icon: const Icon(Icons.clear),
                               onPressed: () {
-                                _searchController.clear();
-                                viewModel.setSearchQuery('');
+                                setState(() {
+                                  _searchController.clear();
+                                  viewModel.setSearchQuery('');
+                                });
                               },
                             )
                           : null,
@@ -140,6 +147,7 @@ class _BlockedAppsPageState extends State<BlockedAppsPage> {
                                 );
 
                                 return AppListItem(
+                                  key: ValueKey(app.packageName),
                                   app: app,
                                   blockedInfo: blockedInfo,
                                   onBlockTap: () => _showBlockDurationModal(

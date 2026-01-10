@@ -104,6 +104,9 @@ class _HomePageState extends State<HomePage> {
     final prompt = _promptController.text.trim();
     if (prompt.isEmpty) return;
 
+    // Unfocus text field before processing
+    _promptFocusNode.unfocus();
+
     setState(() => _isGenerating = true);
 
     if (mounted) {
@@ -188,14 +191,20 @@ class _HomePageState extends State<HomePage> {
                     Row(
                       children: [
                         IconButton(
-                          onPressed: () => context
-                              .read<MicrotaskViewModel>()
-                              .refreshMicrotasks(),
+                          onPressed: () {
+                            _promptFocusNode.unfocus();
+                            context
+                                .read<MicrotaskViewModel>()
+                                .refreshMicrotasks();
+                          },
                           icon: const Icon(Icons.refresh),
                           tooltip: 'Refresh',
                         ),
                         IconButton(
-                          onPressed: () => themeViewModel.toggleTheme(),
+                          onPressed: () {
+                            _promptFocusNode.unfocus();
+                            themeViewModel.toggleTheme();
+                          },
                           icon: Icon(
                             themeViewModel.isDarkMode
                                 ? Icons.light_mode
@@ -237,6 +246,7 @@ class _HomePageState extends State<HomePage> {
                     'Membaca buku non-fiksi 30 halaman...',
                     'Membersihkan dan mengorganisir kamar...',
                   ],
+                  autofocus: false,
                 ),
                 const SizedBox(height: 16),
                 PrimaryButton(
@@ -248,6 +258,7 @@ class _HomePageState extends State<HomePage> {
                 Center(
                   child: TextButton(
                     onPressed: () {
+                      _promptFocusNode.unfocus();
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -358,7 +369,10 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showFocusModeDialog,
+        onPressed: () {
+          _promptFocusNode.unfocus();
+          _showFocusModeDialog();
+        },
         backgroundColor: const Color(0xFF9747FF),
         elevation: 4,
         child: const Icon(Icons.do_disturb_on_outlined),
