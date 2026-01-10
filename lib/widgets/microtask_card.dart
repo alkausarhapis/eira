@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/microtask_model.dart';
+import '../views/edit_microtask_page.dart';
 
 class MicrotaskCard extends StatefulWidget {
   final MicroTaskModel microtask;
@@ -23,6 +24,15 @@ class MicrotaskCard extends StatefulWidget {
 class _MicrotaskCardState extends State<MicrotaskCard> {
   bool _isExpanded = false;
 
+  void _navigateToEditPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditMicrotaskPage(microtask: widget.microtask),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -31,6 +41,7 @@ class _MicrotaskCardState extends State<MicrotaskCard> {
         .length;
     final totalCount = widget.microtask.microtasks.length;
     final isInProgress = widget.microtask.status == 'in-progress';
+    final isDone = widget.microtask.status == 'done';
 
     return Dismissible(
       key: Key(widget.microtask.id),
@@ -79,11 +90,21 @@ class _MicrotaskCardState extends State<MicrotaskCard> {
           borderRadius: BorderRadius.circular(16),
           border: isInProgress
               ? Border.all(color: const Color(0xFF9747FF), width: 2)
+              : isDone
+              ? Border.all(color: Colors.green, width: 2)
               : null,
           boxShadow: isInProgress
               ? [
                   BoxShadow(
                     color: const Color(0xFF9747FF).withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    spreadRadius: 0,
+                  ),
+                ]
+              : isDone
+              ? [
+                  BoxShadow(
+                    color: Colors.green.withValues(alpha: 0.2),
                     blurRadius: 8,
                     spreadRadius: 0,
                   ),
@@ -95,6 +116,8 @@ class _MicrotaskCardState extends State<MicrotaskCard> {
           elevation: 0,
           color: isInProgress
               ? const Color(0xFF9747FF).withValues(alpha: 0.1)
+              : isDone
+              ? Colors.green.withValues(alpha: 0.05)
               : null,
           child: Column(
             children: [
@@ -105,29 +128,66 @@ class _MicrotaskCardState extends State<MicrotaskCard> {
                   padding: const EdgeInsets.all(16),
                   child: Row(
                     children: [
-                      Text(
-                        widget.microtask.emoji,
-                        style: const TextStyle(fontSize: 32),
+                      Stack(
+                        children: [
+                          Text(
+                            widget.microtask.emoji,
+                            style: const TextStyle(fontSize: 32),
+                          ),
+                          if (isDone)
+                            Positioned(
+                              right: 1,
+                              bottom: 1,
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  color: Colors.green,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.check,
+                                  color: Colors.white,
+                                  size: 12,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              widget.microtask.judulTarget,
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    widget.microtask.judulTarget,
+                                    style: theme.textTheme.bodyLarge?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                             const SizedBox(height: 4),
                             Text(
                               '$completedCount dari $totalCount selesai',
-                              style: theme.textTheme.bodyMedium,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: isDone ? Colors.green : null,
+                                fontWeight: isDone ? FontWeight.w500 : null,
+                              ),
                             ),
                           ],
                         ),
                       ),
+                      if (widget.microtask.status != 'in-progress' &&
+                          widget.microtask.status != 'done')
+                        IconButton(
+                          icon: const Icon(Icons.edit, size: 20),
+                          onPressed: _navigateToEditPage,
+                          tooltip: 'Edit',
+                        ),
                       Icon(
                         _isExpanded
                             ? Icons.keyboard_arrow_up

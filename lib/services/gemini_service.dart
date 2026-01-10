@@ -92,28 +92,32 @@ HANYA OUTPUT JSON, TANPA TEKS LAIN:
 
   Future<MicroTaskModel?> generateMicrotasks(String userPrompt) async {
     try {
-      debugPrint('🤖 Generating microtasks for: $userPrompt');
-
       final prompt = _buildPrompt(userPrompt);
       final content = [Content.text(prompt)];
+
       final response = await _model.generateContent(content);
 
       if (response.text == null || response.text!.isEmpty) {
-        debugPrint('❌ Empty response from Gemini');
         return _getFallbackMicrotask(userPrompt);
       }
 
-      debugPrint('📥 Raw Gemini response: ${response.text}');
-
       // Clean the response - remove markdown code blocks if present
       String jsonText = response.text!.trim();
-      jsonText = jsonText
-          .replaceAll('```json', '')
-          .replaceAll('```', '')
-          .trim();
+
+      // Remove markdown code blocks
+      if (jsonText.contains('```')) {
+        final startIndex = jsonText.indexOf('{');
+        final endIndex = jsonText.lastIndexOf('}');
+        if (startIndex != -1 && endIndex != -1) {
+          jsonText = jsonText.substring(startIndex, endIndex + 1);
+        }
+      }
+
+      debugPrint('🧹 Cleaned JSON: $jsonText');
 
       // Try to parse JSON
       final Map<String, dynamic> jsonData = jsonDecode(jsonText);
+      debugPrint('✅ JSON parsed successfully');
 
       // Validate required fields
       if (!_validateJsonStructure(jsonData)) {

@@ -1,8 +1,6 @@
 package com.example.eira.utils
 
 import android.app.AppOpsManager
-import android.app.usage.UsageStats
-import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
@@ -15,7 +13,6 @@ import android.provider.Settings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
-import java.util.Calendar
 
 data class AppInfo(
     val packageName: String,
@@ -26,7 +23,7 @@ data class AppInfo(
 
 class AppManager(private val context: Context) {
     private val packageManager: PackageManager = context.packageManager
-    private val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+    private val usageStatsHelper = AppUsageStatsManager(context)
     private val iconCache = mutableMapOf<String, ByteArray?>()
     
     suspend fun getInstalledUserApps(): List<AppInfo> = withContext(Dispatchers.IO) {
@@ -34,24 +31,19 @@ class AppManager(private val context: Context) {
         val userApps = installedApps.filter { appInfo ->
             val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
             val isUpdatedSystem = (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
-            !isSystem || isUpdatedSystem
+            val isEiraApp = appInfo.packageName == context.packageName
+            (!isSystem || isUpdatedSystem) && !isEiraApp
         }
         
-        val calendar = Calendar.getInstance()
-        calendar.set(Calendar.HOUR_OF_DAY, 0)
-        calendar.set(Calendar.MINUTE, 0)
-        calendar.set(Calendar.SECOND, 0)
-        val startTime = calendar.timeInMillis
-        val endTime = System.currentTimeMillis()
-        
-        val usageStatsMap = getUsageStatsMap(startTime, endTime)
+        // Get all usage stats at once for efficiency
+        val usageStatsMap = usageStatsHelper.getAllTodayUsageStats()
         
         userApps.map { appInfo ->
             AppInfo(
                 packageName = appInfo.packageName,
                 appName = appInfo.loadLabel(packageManager).toString(),
                 iconBytes = null, // Load lazily
-                totalTimeMillis = usageStatsMap[appInfo.packageName]?.totalTimeInForeground ?: 0
+                totalTimeMillis = usageStatsMap[appInfo.packageName] ?: 0
             )
         }.sortedByDescending { it.totalTimeMillis }
     }
@@ -68,27 +60,7 @@ class AppManager(private val context: Context) {
     }
     
     fun getUsageStats(packageName: String, fromTimestamp: Long, toTimestamp: Long): Long {
-        val usageStats = usageStatsManager.queryUsageStats(
-            UsageStatsManager.INTERVAL_DAILY,
-            fromTimestamp,
-            toTimestamp
-        )
-        
-        return usageStats?.firstOrNull { it.packageName == packageName }?.totalTimeInForeground ?: 0
-    }
-    
-    private fun getUsageStatsMap(startTime: Long, endTime: Long): Map<String, UsageStats> {
-        val usageStatsList = usageStatsManager.queryUsageStats(
-            UsageStatsManager.INTERVAL_DAILY,
-            startTime,
-            endTime
-        )
-        
-        // Aggregate by package name
-        return usageStatsList?.groupBy { it.packageName }
-            ?.mapValues { entry ->
-                entry.value.maxByOrNull { it.lastTimeUsed } ?: entry.value.first()
-            } ?: emptyMap()
+        return usageStatsHelper.getUsageTimeInRange(packageName, fromTimestamp, toTimestamp)
     }
     
     private fun drawableToByteArray(drawable: Drawable): ByteArray {

@@ -17,7 +17,6 @@ import 'views/settings_page.dart';
 // TODO: Remove logging
 // TODO: Remove smell codes
 // TODO: Remove unnecessary comments & codes
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 

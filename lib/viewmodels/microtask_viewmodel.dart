@@ -91,6 +91,10 @@ class MicrotaskViewModel extends ChangeNotifier {
   bool get isGenerating => _isGenerating;
   bool get isLoading => _isLoading;
 
+  Future<void> refreshMicrotasks() async {
+    await _loadMicrotasks();
+  }
+
   String? get currentTaskText {
     if (_activeSession == null) return null;
     if (_currentMicrotaskIndex >= _activeSession!.microtasks.length) {
@@ -119,6 +123,29 @@ class MicrotaskViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> addAndSaveMicrotask(MicroTaskModel microtask) async {
+    try {
+      // Add to memory first
+      _microtasks.add(microtask);
+
+      // Re-sort the list
+      _microtasks.sort((a, b) {
+        const statusOrder = {'in-progress': 0, 'pending': 1, 'done': 2};
+        final aOrder = statusOrder[a.status] ?? 3;
+        final bOrder = statusOrder[b.status] ?? 3;
+        return aOrder.compareTo(bOrder);
+      });
+
+      notifyListeners();
+
+      // Save to database
+      await _database.insertMicrotask(microtask);
+      debugPrint('💾 Saved manually created microtask: ${microtask.id}');
+    } catch (e) {
+      debugPrint('❌ Error saving microtask: $e');
+    }
+  }
+
   Future<void> deleteMicrotask(String id) async {
     try {
       // Get the title before removing
@@ -137,6 +164,30 @@ class MicrotaskViewModel extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('❌ Error deleting microtask: $e');
+    }
+  }
+
+  Future<void> updateMicrotaskDetails(
+    String id,
+    String newTitle,
+    String newDescription,
+    List<MicroTaskItem> newItems,
+  ) async {
+    try {
+      final index = _microtasks.indexWhere((m) => m.id == id);
+      if (index != -1) {
+        _microtasks[index] = _microtasks[index].copyWith(
+          judulTarget: newTitle,
+          deskripsi: newDescription,
+          microtasks: newItems,
+        );
+
+        await _database.updateMicrotask(_microtasks[index]);
+        debugPrint('✏️ Updated microtask: $id');
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('❌ Error updating microtask: $e');
     }
   }
 
@@ -226,7 +277,7 @@ class MicrotaskViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void completeCurrentMicrotask() {
+  Future<void> completeCurrentMicrotask() async {
     if (_activeSession == null) return;
 
     final currentItem = _activeSession!.microtasks[_currentMicrotaskIndex];
@@ -234,6 +285,14 @@ class MicrotaskViewModel extends ChangeNotifier {
 
     _timer?.cancel();
     _isPaused = true;
+
+    // Save progress to database immediately
+    final index = _microtasks.indexWhere((m) => m.id == _activeSession!.id);
+    if (index != -1) {
+      _microtasks[index] = _activeSession!.copyWith(timeTaken: _elapsedTime);
+      await _database.updateMicrotask(_microtasks[index]);
+      debugPrint('💾 Saved task completion progress to database');
+    }
 
     // Start rest timer
     _restTimeRemaining = currentItem.restTimeSeconds;
@@ -291,6 +350,45 @@ class MicrotaskViewModel extends ChangeNotifier {
     _onMicrotaskCompleted?.call(completedTitle);
 
     notifyListeners();
+  }
+
+  Future<void> abandonSession() async {
+    if (_activeSession == null) return;
+
+    final index = _microtasks.indexWhere((m) => m.id == _activeSession!.id);
+    if (index != -1) {
+      _microtasks[index] = _activeSession!.copyWith(
+        status: 'pending',
+        timeTaken: Duration.zero,
+      );
+
+      // Reset completion status for all tasks
+      for (var task in _microtasks[index].microtasks) {
+        task.isCompleted = false;
+      }
+
+      // Save to database
+      await _database.updateMicrotask(_microtasks[index]);
+      debugPrint('🚫 Abandoned session: ${_activeSession!.judulTarget}');
+    }
+
+    _timer?.cancel();
+    _restTimer?.cancel();
+    _activeSession = null;
+    _currentMicrotaskIndex = 0;
+    _elapsedTime = Duration.zero;
+    _isPaused = false;
+    _restTimeRemaining = null;
+
+    notifyListeners();
+  }
+
+  void skipRest() {
+    if (_restTimeRemaining == null) return;
+
+    _restTimer?.cancel();
+    _restTimeRemaining = null;
+    _moveToNextMicrotask();
   }
 
   void _startTimer() {

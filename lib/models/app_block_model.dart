@@ -26,7 +26,7 @@ class InstalledAppModel {
     final minutes = (totalTimeMillis % (1000 * 60 * 60)) ~/ (1000 * 60);
 
     if (hours > 0) {
-      return '${hours}h ${minutes}m';
+      return '${hours}j ${minutes}m';
     } else {
       return '${minutes}m';
     }
